@@ -1,12 +1,21 @@
 #-------------------------------------------------------------------------------
-# Version: 1.1
+# Version: 1.2
 
 # Author: Yu-Cheng Lin
 
 # Modifications:
-#   Introduce pandas Data Frame
+#   For gene annotation adopt GTF format,
+#     therefore needed to parse the GTF file,
+#     especially the 'attribute' field to get 'gene_id' and 'name'
+#
+#   Other concomitant changes:
+#     'Locus Tag' is replaced by 'Gene ID'
+#     'Gene Name' is replaced by 'Name'
 #-------------------------------------------------------------------------------
 
+
+
+import re
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
@@ -56,26 +65,63 @@ class PWMScan(object):
         parser = SeqIO.parse(filename, 'fasta')
         self.sequence = str(next(parser).seq)
         self.sequence = self.__str_to_np_seq(self.sequence)
-        # self.sequence = self.sequence[1:100000]
 
     def load_annotation(self, filename):
         '''
         :parameter
-            filename: str, the name of the annotation file in csv format
+            filename:
+                str, the name of the annotation file in GTF format
+                The GTF file by default has start, end, strand and attribute
+                The attribute field should have 'gene_id' and 'name'
         '''
-        self.annot = pd.read_csv(filename)
 
-    def launch_scan(self, filename, thres, report_adjacent_genes=True, use_genomic_GC=False):
+        # Column names for the pandas data frame
+        columns = ['Start', 'End', 'Strand', 'Gene ID', 'Name']
+
+        # Create an empty dictionary for the pandas data frame
+        D = {key:[] for key in columns}
+
+        with open(filename, 'r') as fh:
+            for line in fh:
+                entry = line.strip().split('\t')
+
+                # GTF format
+                # 0        1       2        3      4    5      6       7      8
+                # seqname, source, feature, start, end, score, strand, frame, attribute
+
+                D['Start'].append(int(entry[3]))
+                D['End'].append(int(entry[4]))
+                D['Strand'].append(entry[6])
+
+                attribute = entry[8]
+
+                # Use regexp to get the gene_id and name
+                gene_id = re.search('gene_id\s".*?";', attribute).group(0)[9:-2]
+                name = re.search('name\s".*?";', attribute).group(0)[6:-2]
+
+                D['Gene ID'].append(gene_id)
+                D['Name'].append(name)
+
+        # Create a data frame
+        self.annot = pd.DataFrame(D, columns=columns)
+
+    def launch_scan(self, filename, thres,
+                    report_adjacent_genes=True, promoter_length=500,
+                    use_genomic_GC=False):
         '''
         :parameter
             filename:
-                the output filename
+                the output excel filename
 
             thres:
                 threshold of the score above which the sequence is retained
 
             report_adjacent_genes:
                 True/False
+
+            promoter_range:
+                If reporting adjacent genes, the promoter range within which
+                the hit is defined as adjacent
 
             use_genomic_GC:
                 True/False. Decides whether to use the genomic GC content as
@@ -97,9 +143,9 @@ class PWMScan(object):
         self.hits = self.__psm_scan(self.psm, self.sequence, thres)
 
         if report_adjacent_genes and not self.annot is None:
-            self.__find_adjacent_genes(distance_range=500)
+            self.__find_adjacent_genes(distance_range=promoter_length)
 
-        self.hits.to_csv('output.csv')
+        self.hits.to_csv(filename)
 
     # Private methods
 
@@ -248,24 +294,32 @@ class PWMScan(object):
         return hits
 
     def __find_adjacent_genes(self, distance_range):
+        '''
+        :parameter
+            distance_range: distance of promoter range in bp
 
-        # self.hits is a pandas data frame that contains the PWM derected sites
+        :return:
+            None. This method modifies self.hits
+        '''
 
-        # Adding new fields (columns)
-        for h in ('Locus Tag', 'Gene Name', 'Distance'):
+        # self.hits is a pandas data frame that contains the PWM hit sites
+
+        # Adding three new fields (columns)
+        for h in ('Gene ID', 'Name', 'Distance'):
             self.hits[h] = ''
 
+        # Convert self.annot (data frame) into a list of dictionaries for faster search
         # list of dictionaries [{...}, {...}, ...]
         # Each dictionary has 'Start', 'End', 'Strand'
         intervals = []
         for j in xrange(len(self.annot)):
-            gene = self.annot.iloc[j, :]
-            intervals.append({'Start' :gene['Start'] ,
-                              'End'   :gene['End']   ,
-                              'Strand':gene['Strand']})
+            entry = self.annot.iloc[j, :]
+            intervals.append({'Start' :entry['Start'] ,
+                              'End'   :entry['End']   ,
+                              'Strand':entry['Strand']})
 
+        # Outer for loop --- for each PWM hit
         for i in xrange(len(self.hits)):
-            print i
 
             # ith row -> pandas series
             hit = self.hits.iloc[i, :]
@@ -276,20 +330,28 @@ class PWMScan(object):
             # Search through all annotated genes to see if
             # the hit location lies in the UPSTREAM promoter of any one of the genes
 
-            locus_tag = []
+            # Create empty lists for each hit
+            gene_id = []
             gene_name = []
             distance = []
+            # Inner for loop --- for each annotated gene
             for j, intv in enumerate(intervals):
+
+                if hit_loc < intv['Start'] - 500:
+                    continue
+
+                if hit_loc > intv['End'] + 500:
+                    continue
 
                 if intv['Strand'] == '+':
                     promoter_from = intv['Start'] - distance_range
                     promoter_to   = intv['Start'] - 1
 
                     if hit_loc >= promoter_from and hit_loc <= promoter_to:
-                        gene = self.annot.iloc[j, :]
+                        entry = self.annot.iloc[j, :]
+                        gene_id.append(entry['Gene ID'])
+                        gene_name.append(entry['Name'])
                         dist = intv['Start'] - hit_loc
-                        locus_tag.append(gene['Locus Tag'])
-                        gene_name.append(gene['Name'])
                         distance.append(dist)
 
                 elif intv['Strand'] == '-':
@@ -297,16 +359,17 @@ class PWMScan(object):
                     promoter_to   = intv['End'] + distance_range
 
                     if hit_loc >= promoter_from and hit_loc <= promoter_to:
-                        gene = self.annot.iloc[j, :]
+                        entry = self.annot.iloc[j, :]
+                        gene_id.append(entry['Gene ID'])
+                        gene_name.append(entry['Name'])
                         dist = hit_loc - intv['End']
-                        locus_tag.append(gene['Locus Tag'])
-                        gene_name.append(gene['Name'])
                         distance.append(dist)
 
-            if locus_tag:
-                self.hits.loc[i, 'Locus Tag'] = ' | '.join(map(str, locus_tag))
-                self.hits.loc[i, 'Gene Name'] = ' | '.join(map(str, gene_name))
-                self.hits.loc[i, 'Distance']  = ' | '.join(map(str, distance ))
+            # If the gene_id != []
+            if gene_id:
+                self.hits.loc[i, 'Gene ID'] = ' ; '.join(map(str, gene_id))
+                self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
+                self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
 
 
 
@@ -321,8 +384,11 @@ if __name__ == '__main__':
     pwmscan.load_sequence('NC_008463_PA14_genome.fna')
 
     # Load annotation (csv)
-    pwmscan.load_annotation('PA14_annotation.csv')
+    pwmscan.load_annotation('Pseudomonas_aeruginosa_UCBPP-PA14.gtf')
 
-    pwmscan.launch_scan('output.csv', 10)
+    import time
+    t = time.clock()
+    pwmscan.launch_scan('PA14_Anr_binding_sites.csv', 12)
+    print time.clock() - t
 
 
