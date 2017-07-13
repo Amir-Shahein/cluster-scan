@@ -1,5 +1,5 @@
 # PWM Scan
-Position-weight-matrix (PWM) scan through a genomic sequence.
+Position-weight-matrix (PWM) scan through a genome.
 
 ## Install
 
@@ -12,7 +12,7 @@ pip install pwm_scan
 At least two things are needed to perform a position-weight-matrix (PWM) scan:
 
 - A TEXT (.txt) file containing the collection of target sites, in order to build the PWM.
-- A genomic sequence file in FASTA (.fna) format.
+- A genome sequence file in FASTA (.fna) format.
 
 In addition, if you have the genome annotation in GTF format (.gtf), genes adjacent to the PWM-detected sites will be included in the output file.
 
