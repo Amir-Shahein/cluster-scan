@@ -50,7 +50,7 @@ TTGATTCCGGTCAA TTGACTTTCATCAA TTGATTGCCATCAA TTGACCGGAATCAA TTGACGGCCGTCAA
 TTGATTCCGGTCAA <tab> TTGACTTTCATCAA <tab> TTGATTGCCATCAA <tab> TTGACCGGAATCAA <tab> TTGACGGCCGTCAA
 ```
 
-FASTA and GTF are very common formats for genome sequence and genome annotations, respective. You can find information of them at:
+FASTA and GTF are very common formats for genome sequence and genome annotations, respectively.
 
 The FASTA format for genome sequence: <https://en.wikipedia.org/wiki/FASTA_format>
 
