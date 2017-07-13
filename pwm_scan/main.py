@@ -1,16 +1,12 @@
 #-------------------------------------------------------------------------------
-# Version: 1.2
+# Version: 1.3
 
 # Author: Yu-Cheng Lin
 
 # Modifications:
-#   For gene annotation adopt GTF format,
-#     therefore needed to parse the GTF file,
-#     especially the 'attribute' field to get 'gene_id' and 'name'
-#
-#   Other concomitant changes:
-#     'Locus Tag' is replaced by 'Gene ID'
-#     'Gene Name' is replaced by 'Name'
+#   Remove the dependency on biopython,
+#     which is not available with pip install.
+#   This is basically for easier installation by users.
 #-------------------------------------------------------------------------------
 
 
@@ -18,7 +14,6 @@
 import re
 import numpy as np
 import pandas as pd
-from Bio import SeqIO
 
 
 
@@ -62,8 +57,10 @@ class PWMScan(object):
         :parameter
             filename: str, the name of the fasta file
         '''
-        parser = SeqIO.parse(filename, 'fasta')
-        self.sequence = str(next(parser).seq)
+        self.sequence = self.__parse_fasta(filename)
+        if self.sequence is None:
+            print 'Not valid fasta format.'
+            return
         self.sequence = self.__str_to_np_seq(self.sequence)
 
     def load_annotation(self, filename):
@@ -184,6 +181,15 @@ class PWMScan(object):
             str_seq[i] = ref[num]
 
         return ''.join(str_seq)
+
+    def __parse_fasta(self, filename):
+        with open(filename, 'r') as fh:
+            lines = fh.read().splitlines()
+        first = lines.pop(0)
+        if first.startswith('>'):
+            return ''.join(lines)
+        else:
+            return None
 
     def __rev_comp(self, seq):
         '''
@@ -370,25 +376,5 @@ class PWMScan(object):
                 self.hits.loc[i, 'Gene ID'] = ' ; '.join(map(str, gene_id))
                 self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
                 self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
-
-
-
-if __name__ == '__main__':
-
-    pwmscan = PWMScan()
-
-    # Load binding sites to generate a position weight matrix
-    pwmscan.load_pwm('Anr_sites.txt')
-
-    # Load genome sequence (fasta)
-    pwmscan.load_sequence('NC_008463_PA14_genome.fna')
-
-    # Load annotation (csv)
-    pwmscan.load_annotation('Pseudomonas_aeruginosa_UCBPP-PA14.gtf')
-
-    import time
-    t = time.clock()
-    pwmscan.launch_scan('PA14_Anr_binding_sites.csv', 12)
-    print time.clock() - t
 
 
