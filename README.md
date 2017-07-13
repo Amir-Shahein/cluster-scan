@@ -34,6 +34,28 @@ scan.load_annotation('example_genome_annotation.gtf')
 scan.launch_scan('output.csv', thres=12)
 ```
 
+## File format
+
+The format of the input TEXT (.txt) file of target sites is very flexible. It can be comma, space or tab delimited. For example, the following three formats are all acceptable. Also note that all target sites should have the same length.
+
+```
+TTGATTCCGGTCAA,TTGACTTTCATCAA,TTGATTGCCATCAA,TTGACCGGAATCAA,TTGACGGCCGTCAA
+```
+
+```
+TTGATTCCGGTCAA TTGACTTTCATCAA TTGATTGCCATCAA TTGACCGGAATCAA TTGACGGCCGTCAA
+```
+
+```
+TTGATTCCGGTCAA <tab> TTGACTTTCATCAA <tab> TTGATTGCCATCAA <tab> TTGACCGGAATCAA <tab> TTGACGGCCGTCAA
+```
+
+FASTA and GTF are very common formats for genome sequence and genome annotations, respective. You can find information of them at:
+
+The FASTA format for genome sequence: <https://en.wikipedia.org/wiki/FASTA_format>
+
+The gene transfer format (GTF) for genome annotation: <https://en.wikipedia.org/wiki/Gene_transfer_format>
+
 ## Dependency
 
 `numpy`, `pandas`, `re`
