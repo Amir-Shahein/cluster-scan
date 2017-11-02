@@ -30,9 +30,9 @@ class PWMScan(object):
             for s in S:
                 sites = sites + s.split(',')
 
-        for i in xrange(1, len(sites)):
+        for i in range(1, len(sites)):
             if len(sites[i]) != len(sites[0]):
-                print 'Input sites not identical in length!'
+                print('Input sites not identical in length!')
                 return
 
         self.pwm = self.__gen_pwm(sites)
@@ -52,7 +52,7 @@ class PWMScan(object):
         # If seq is not a DNA sequence, then seq should be the fasta file name
         self.sequence = self.__parse_fasta(seq)
         if self.sequence is None:
-            print 'Not valid fasta format.'
+            print('Not valid fasta format.')
             return
         self.sequence = self.__str_to_np_seq(self.sequence)
 
@@ -188,7 +188,7 @@ class PWMScan(object):
         """
         Convert (0, 1, 2, 3, 4) base coding back to (A, C, G, T, N)
         """
-        str_seq = ['A' for i in xrange(len(np_seq))]
+        str_seq = ['A' for i in range(len(np_seq))]
 
         ref = {0:'A',
                1:'C',
@@ -295,7 +295,7 @@ class PWMScan(object):
                             columns=colnames)
 
         # The main loop that scans through the (genome) sequence
-        for i in xrange(len(seq) - n_mer + 1):
+        for i in range(len(seq) - n_mer + 1):
 
             window = seq[i:(i+n_mer)]
 
@@ -342,14 +342,14 @@ class PWMScan(object):
         # list of dictionaries [{...}, {...}, ...]
         # Each dictionary has 'Start', 'End', 'Strand'
         intervals = []
-        for j in xrange(len(self.annot)):
+        for j in range(len(self.annot)):
             entry = self.annot.iloc[j, :]
             intervals.append({'Start' :entry['Start'] ,
                               'End'   :entry['End']   ,
                               'Strand':entry['Strand']})
 
         # Outer for loop --- for each PWM hit
-        for i in xrange(len(self.hits)):
+        for i in range(len(self.hits)):
 
             # ith row -> pandas series
             hit = self.hits.iloc[i, :]

@@ -1,16 +1,12 @@
 """
-Version: 1.3
+Version: 1.4
 
 Author: Yu-Cheng Lin
 
 Changes:
-    Add the method pwm_scan.load_count_matrix() to load numpy matrix as position count matrix
-
-    Create PWMScan.load_count_matrix() method
-
-    Make PWMScan.load_sequence() more flexible
+    Move to Python 3. Change Python 2 syntax like print and xrange() to Python 3 compatible syntax.
 """
 
-__version__ = 1.3
+__version__ = 1.4
 
 from .main import *
