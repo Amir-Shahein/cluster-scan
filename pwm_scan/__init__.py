@@ -11,6 +11,6 @@ Changes:
     Make PWMScan.load_sequence() more flexible
 """
 
-__version__ = 1.4
+__version__ = 1.3
 
 from .main import *
