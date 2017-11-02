@@ -31,7 +31,7 @@ scan.load_sequence('example_genome_sequence.fna')
 scan.load_annotation('example_genome_annotation.gtf')
 
 # Launch scan and output the result in a .csv file
-scan.launch_scan('output.csv', thres=12)
+scan.launch_scan(filename='output.csv', threshold=12)
 ```
 
 ## File format

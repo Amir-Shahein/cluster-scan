@@ -1,16 +1,3 @@
-#-------------------------------------------------------------------------------
-# Version: 1.3
-
-# Author: Yu-Cheng Lin
-
-# Modifications:
-#   Remove the dependency on biopython,
-#     which is not available with pip install.
-#   This is basically for easier installation by users.
-#-------------------------------------------------------------------------------
-
-
-
 import re
 import numpy as np
 import pandas as pd
@@ -19,26 +6,24 @@ import pandas as pd
 
 class PWMScan(object):
     def __init__(self):
-        '''
+        """
         List all data entities for performing a pwm scan:
             > The position weight matrix (and score matrix)
             > The (genome) sequence to be scanned
             > The genome annotation as a data frame
             > The scanning result hits as a data frame
-        '''
+        """
         self.pwm = None
         self.psm = None
         self.sequence = None
         self.annot = None
         self.hits = None
 
-    # Publich methods
-
     def load_pwm(self, filename):
-        '''
-        :parameter
+        """
+        Args:
             filename: The input file could be comma, tab, space delimited.
-        '''
+        """
         sites = []
         with open(filename, 'r') as fh:
             S = fh.read().split()
@@ -52,25 +37,33 @@ class PWMScan(object):
 
         self.pwm = self.__gen_pwm(sites)
 
-    def load_sequence(self, filename):
-        '''
-        :parameter
-            filename: str, the name of the fasta file
-        '''
-        self.sequence = self.__parse_fasta(filename)
+    def load_sequence(self, seq):
+        """
+        Args:
+            seq: str, could be two things:
+                (1) the fasta file name
+                (2) the DNA sequence
+        """
+        # If the unique characters in seq only contains the four DNA letters
+        if set(seq.lower()) == set(['a', 'c', 'g', 't']):
+            self.sequence = self.__str_to_np_seq(seq)
+            return
+
+        # If seq is not a DNA sequence, then seq should be the fasta file name
+        self.sequence = self.__parse_fasta(seq)
         if self.sequence is None:
             print 'Not valid fasta format.'
             return
         self.sequence = self.__str_to_np_seq(self.sequence)
 
     def load_annotation(self, filename):
-        '''
-        :parameter
+        """
+        Args:
             filename:
                 str, the name of the annotation file in GTF format
                 The GTF file by default has start, end, strand and attribute
                 The attribute field should have 'gene_id' and 'name'
-        '''
+        """
 
         # Column names for the pandas data frame
         columns = ['Start', 'End', 'Strand', 'Gene ID', 'Name']
@@ -102,31 +95,55 @@ class PWMScan(object):
         # Create a data frame
         self.annot = pd.DataFrame(D, columns=columns)
 
-    def launch_scan(self, filename, thres,
+    def load_count_matrix(self, matrix):
+        """
+        Args:
+            matrix: 2-D numpy array, dtype = np.int
+                the matrix should have 4 rows with
+                row 0, 1, 2, 3 corresponding to A, C, G ,T
+        """
+        assert(matrix.shape[0] == 4)
+
+        # Create a new float array and +1 for pseudocount
+        pwm = np.array(matrix, dtype=np.float) + 1
+
+        # Sum 'downwards' across rows to get position-specific sum
+        # Usually every position should have the same number of sum
+        pwm = pwm / np.sum(pwm, axis=0)
+
+        self.pwm = pwm
+
+    def launch_scan(self, filename=None, threshold=10.,
                     report_adjacent_genes=True, promoter_length=500,
                     use_genomic_GC=False):
-        '''
-        :parameter
+        """
+        Args:
             filename:
-                the output excel filename
+                str, the output excel filename
 
-            thres:
-                threshold of the score above which the sequence is retained
+            threshold:
+                float or int, threshold of the score above which the sequence is retained
 
             report_adjacent_genes:
-                True/False
+                boolean
 
-            promoter_range:
+            promoter_length:
+                int
                 If reporting adjacent genes, the promoter range within which
                 the hit is defined as adjacent
 
             use_genomic_GC:
-                True/False. Decides whether to use the genomic GC content as
+                boolean, whether to use the genomic GC content as
                 the background GC frequency to calculate score matrix
 
-        :return:
-            None. But write the results in the output file in csv format.
-        '''
+        Returns:
+            self.hits:
+                a pandas data frome with the following fields:
+                ['Score', 'Sequence', 'Start', 'End', 'Strand']
+
+                Also there's an option to write the result self.hits
+                in the output file in csv format.
+        """
 
         if self.pwm is None or self.sequence is None:
             return
@@ -137,22 +154,23 @@ class PWMScan(object):
         else:
             self.psm = self.__pwm_to_psm(self.pwm)
 
-        self.hits = self.__psm_scan(self.psm, self.sequence, thres)
+        self.hits = self.__psm_scan(self.psm, self.sequence, threshold)
 
         if report_adjacent_genes and not self.annot is None:
             self.__find_adjacent_genes(distance_range=promoter_length)
 
-        self.hits.to_csv(filename)
+        if not filename is None:
+            self.hits.to_csv(filename)
 
-    # Private methods
+        return self.hits
 
     def __str_to_np_seq(self, str_seq):
-        '''
+        """
         A custom DNA base coding system with numbers.
         (A, C, G, T, N) = (0, 1, 2, 3, 0)
 
         A DNA string is converted to a numpy integer array (np.unit8) with the same length.
-        '''
+        """
         np_seq = np.zeros((len(str_seq), ), np.uint8)
 
         ref = {'A':0, 'a':0,
@@ -167,9 +185,9 @@ class PWMScan(object):
         return np_seq
 
     def __np_to_str_seq(self, np_seq):
-        '''
+        """
         Convert (0, 1, 2, 3, 4) base coding back to (A, C, G, T, N)
-        '''
+        """
         str_seq = ['A' for i in xrange(len(np_seq))]
 
         ref = {0:'A',
@@ -192,9 +210,9 @@ class PWMScan(object):
             return None
 
     def __rev_comp(self, seq):
-        '''
+        """
         Reverse complementary. Input could be either a numpy array or a DNA string.
-        '''
+        """
         if isinstance(seq, np.ndarray):
             return 3 - seq[::-1]
         elif isinstance(seq, str):
@@ -202,9 +220,9 @@ class PWMScan(object):
             return __np_to_str_seq(seq)
 
     def __calc_GC(self, seq):
-        '''
+        """
         Calculate GC content. Input could be either a numpy array or a DNA string.
-        '''
+        """
         if isinstance(seq, str):
             seq = self.__str_to_np_seq(seq)
 
@@ -214,10 +232,16 @@ class PWMScan(object):
             return GC_content
 
     def __gen_pwm(self, sites):
-        '''
+        """
         Takes a list of sites (str with identical length).
         Returns the position weight matrix.
-        '''
+
+        Args:
+            sites: list of str
+
+        Returns:
+            pwm: 2-D numpy arraym, dtype = np.float
+        """
 
         sites = [self.__str_to_np_seq(s) for s in sites]
 
@@ -229,20 +253,20 @@ class PWMScan(object):
         for s in sites:
             for i, base in enumerate(s): # For each base, add to the count matrix.
                 pwm[base, i] += 1        # The integer coding (0, 1, 2, 3) = (A, C, G, T)
-                                         # corresponds the order of rows 0, 1, 2, 3 = A, C, G, T
+                                         # corresponds to the order of rows 0, 1, 2, 3 = A, C, G, T
 
         pwm = pwm / np.sum(pwm[:, 1]) # Compute the position weight matrix, i.e. probability matrix
 
         return pwm
 
     def __pwm_to_psm(self, pwm, GC_content=0.5):
-        '''
+        """
         Converts position weight matrix to position score matrix.
         The background GC content is taken into account to comput the likelihood.
         Score is the log2 likelihood.
 
         The default background GC_content = 0.5, which is strongly recommended.
-        '''
+        """
         psm = np.zeros(pwm.shape, np.float)
 
         psm[[0,3], :] = pwm[[0,3], :] / ((1 - GC_content) / 2) # Divide by the background frequency -> likelihood matrix
@@ -252,10 +276,10 @@ class PWMScan(object):
         return np.log2(psm)
 
     def __psm_scan(self, psm, seq, thres):
-        '''
+        """
         The core function that performs PWM (PSM) scan
         through the (genomic) sequence.
-        '''
+        """
         if isinstance(seq, str):
             seq = __str_to_np_seq(seq)
 
@@ -300,13 +324,13 @@ class PWMScan(object):
         return hits
 
     def __find_adjacent_genes(self, distance_range):
-        '''
-        :parameter
+        """
+        Args:
             distance_range: distance of promoter range in bp
 
-        :return:
+        Returns:
             None. This method modifies self.hits
-        '''
+        """
 
         # self.hits is a pandas data frame that contains the PWM hit sites
 

@@ -8,4 +8,5 @@ setup(name='pwm_scan',
       author_email='linyc74@gmail.com',
       license='MIT',
       packages=['pwm_scan'],
+      install_requires=['numpy', 'pandas',],
       zip_safe=False)
