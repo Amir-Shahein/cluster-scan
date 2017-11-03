@@ -8,10 +8,21 @@ class PWMScan(object):
     def __init__(self):
         """
         List all data entities for performing a pwm scan:
-            > The position weight matrix (and score matrix)
-            > The (genome) sequence to be scanned
-            > The genome annotation as a data frame
-            > The scanning result hits as a data frame
+
+            self.pwm: the position weight matrix
+                numpy 2D array, dtype=np.float
+
+            self.psm: the position score matrix
+                numpy 2D array, dtype=np.float
+
+            self.sequence: the (genome) sequence to be scanned
+                numpy 1D array, dtype=np.int
+
+            self.annot: the genome annotation
+                pandas DataFrame
+
+            self.hits: the scanning result hits
+                pandas DataFrame
         """
         self.pwm = None
         self.psm = None
@@ -26,9 +37,9 @@ class PWMScan(object):
         """
         sites = []
         with open(filename, 'r') as fh:
-            S = fh.read().split()
+            S = fh.read().split() # split by space, tab or line break
             for s in S:
-                sites = sites + s.split(',')
+                sites = sites + s.split(',') # further split by ','
 
         for i in range(1, len(sites)):
             if len(sites[i]) != len(sites[0]):
@@ -42,7 +53,8 @@ class PWMScan(object):
         Args:
             seq: str, could be two things:
                 (1) the fasta file name
-                (2) the DNA sequence
+                (2) the DNA sequence, containing only (A, C, G, T)
+                    no space or other characters allowed
         """
         # If the unique characters in seq only contains the four DNA letters
         if set(seq.lower()) == set(['a', 'c', 'g', 't']):
@@ -113,16 +125,15 @@ class PWMScan(object):
 
         self.pwm = pwm
 
-    def launch_scan(self, filename=None, threshold=10.,
-                    report_adjacent_genes=True, promoter_length=500,
-                    use_genomic_GC=False):
+    def launch_scan(self, filename=None, threshold=10., report_adjacent_genes=True,
+                    promoter_length=500, use_genomic_GC=False):
         """
         Args:
             filename:
                 str, the output excel filename
 
             threshold:
-                float or int, threshold of the score above which the sequence is retained
+                float or int, threshold of the score above which the sequence motif is retained
 
             report_adjacent_genes:
                 boolean

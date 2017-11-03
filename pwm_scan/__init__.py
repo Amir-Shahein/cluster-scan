@@ -1,12 +1,12 @@
 """
-Version: 1.4
+Version: 1.5
 
 Author: Yu-Cheng Lin
 
-Changes:
-    Move to Python 3. Change Python 2 syntax like print and xrange() to Python 3 compatible syntax.
+Changes in version 1.5:
+    Some code comments and doc string modification
 """
 
-__version__ = 1.4
+__version__ = '1.5'
 
 from .main import *
