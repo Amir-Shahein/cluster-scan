@@ -3,11 +3,10 @@ import numpy as np
 import pandas as pd
 
 
-
 class PWMScan(object):
     def __init__(self):
         """
-        List all data entities for performing a pwm scan:
+        Object attributes:
 
             self.pwm: the position weight matrix
                 numpy 2D array, dtype=np.float

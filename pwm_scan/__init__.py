@@ -1,12 +1,7 @@
 """
-Version: 1.5
-
-Author: Yu-Cheng Lin
-
-Changes in version 1.5:
-    Some code comments and doc string modification
+Position-weight-matrix (PWM) scan through genomic sequence
 """
 
-__version__ = '1.5'
+__version__ = '2.0.0'
 
 from .main import *

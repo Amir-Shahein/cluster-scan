@@ -1,11 +1,11 @@
-Metadata-Version: 1.0
+Metadata-Version: 1.2
 Name: pwm-scan
-Version: 1.4
+Version: 2.0.0
 Summary: Position-weight-matrix (PWM) scan through genomic sequence
 Home-page: https://github.com/linyc74/pwm_scan
 Author: Yu-Cheng Lin
 Author-email: linyc74@gmail.com
 License: MIT
-Description-Content-Type: UNKNOWN
 Description: UNKNOWN
 Platform: UNKNOWN
+Requires-Python: >3.6
