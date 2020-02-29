@@ -2,6 +2,7 @@ import re
 import numpy as np
 import pandas as pd
 
+
 class PWMScan(object):
     def __init__(self):
         """
@@ -34,12 +35,12 @@ class PWMScan(object):
             filename: The input file could be comma, tab, space delimited.
         """
         sites = []
-        with open(filename, 'r') as fh:
+        with open(filename, 'r') as fh:  #process the file into list of sites 
             S = fh.read().split() # split by space, tab or line break
             for s in S:
-                sites = sites + s.split(',') # further split by ','
+                sites = sites + s.split(',') # further split by ',' (A - just to remove any extra commas)
 
-        for i in range(1, len(sites)):
+        for i in range(1, len(sites)): # A - check to make sure all sites are the same length
             if len(sites[i]) != len(sites[0]):
                 print('Input sites not identical in length!')
                 return
@@ -55,7 +56,7 @@ class PWMScan(object):
                     no space or other characters allowed
         """
         # If the unique characters in seq only contains the four DNA letters
-        if set(seq.lower()) == set(['a', 'c', 'g', 't']):
+        if set(seq.lower()) == set(['a', 'c', 'g', 't']): # A - seems like a computationally intensive check
             self.sequence = self.__str_to_np_seq(seq)
             return
 
@@ -147,7 +148,7 @@ class PWMScan(object):
 
         Returns:
             self.hits:
-                a pandas data frome with the following fields:
+                a pandas data frame with the following fields:
                 ['Score', 'Sequence', 'Start', 'End', 'Strand']
 
                 Also there's an option to write the result self.hits
@@ -188,8 +189,8 @@ class PWMScan(object):
                'T':3, 't':3,
                'N':0, 'n':0} # N should be very rare in a valid genome sequence so just assign it as A
 
-        for i, base in enumerate(str_seq):
-            np_seq[i] = ref[base]
+        for i, base in enumerate(str_seq): #i is the index, base is the letter  in str_seq
+            np_seq[i] = ref[base] #ref is a dictionary, so using the base as a key will give the numeric value
 
         return np_seq
 
@@ -257,21 +258,23 @@ class PWMScan(object):
         # Start to build position weight matrix = pwm
         # Rows 0, 1, 2, 3 correspond to A, C, G, T, respectively, which is identical to the integer coding.
         n_mer = len(sites[0])
-        pwm = np.ones((4, n_mer), np.float) # The position count matrix begin from 1 as pseudocount
+        pwm = np.ones((4, n_mer), np.float) # The position count matrix begin from 1 as pseudocount (A- not sure why, but minor)
 
         for s in sites:
             for i, base in enumerate(s): # For each base, add to the count matrix.
                 pwm[base, i] += 1        # The integer coding (0, 1, 2, 3) = (A, C, G, T)
                                          # corresponds to the order of rows 0, 1, 2, 3 = A, C, G, T
 
-        pwm = pwm / np.sum(pwm[:, 1]) # Compute the position weight matrix, i.e. probability matrix
+        pwm = pwm / np.sum(pwm[:, 1]) # Compute the position weight matrix, i.e. probability matrix (A - divide 
+                                      # by total number of  sequences, which is the sum of any column). Maximum
+                                      # value is 1 --> if every sequence has that base at a specific position.
 
         return pwm
 
     def __pwm_to_psm(self, pwm, GC_content=0.5):
         """
         Converts position weight matrix to position score matrix.
-        The background GC content is taken into account to comput the likelihood.
+        The background GC content is taken into account to compute the likelihood.
         Score is the log2 likelihood.
 
         The default background GC_content = 0.5, which is strongly recommended.
@@ -289,7 +292,7 @@ class PWMScan(object):
         The core function that performs PWM (PSM) scan
         through the (genomic) sequence.
         """
-        if isinstance(seq, str):
+        if isinstance(seq, str): #if the genome sequence is still a string, encode it as 0123
             seq = __str_to_np_seq(seq)
 
         n_mer = psm.shape[1]    # length (num of cols) of the weight matrix
@@ -306,13 +309,14 @@ class PWMScan(object):
         # The main loop that scans through the (genome) sequence
         for i in range(len(seq) - n_mer + 1):
 
-            window = seq[i:(i+n_mer)]
+            window = seq[i:(i+n_mer)] #pull out the sequence we're comparing the PWM against.
 
             # --- The most important line of code ---
             #     Use integer coding to index the correct score from column 0 to (n_mer-1)
-            score = np.sum( psm[window, cols] )
+            score = np.sum( psm[window, cols] ) #indexing with two np arrays subscripts members 
+                                                #specified as ([row (first member), etc.],[column (first member), etc.])
 
-            if score > thres:
+            if score > thres: #append a new row in the dataframe, with details
                 hits.loc[len(hits)] = [score                       , # Score
                                        self.__np_to_str_seq(window), # Sequence
                                        i + 1                       , # Start
