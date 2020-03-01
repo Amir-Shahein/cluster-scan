@@ -46,6 +46,30 @@ class PWMScan(object):
                 return
 
         self.pwm = self.__gen_pwm(sites)
+        
+    def load_pwm_alternate(self, filename, n_mer):
+        """
+        Args: 
+            filename: corresponds to a file that contains a frequency matrix (ex: output from http://jaspar.genereg.net/matrix/MA0162.3/)
+            num_bases: number of bases in the motif
+        """
+        pwm = np.ones((4, n_mer), np.float) #original script started at 1 as a pseudocount instead of 0... see below what I do
+        
+        with open(filename, 'r') as fh:
+           pre_pwm = [[float(B) for B in line.split()] for line in fh] #process the text file into a 2D list
+        
+        pre_pwm = np.array(pre_pwm, dtype=float) #convert the 2D array into a 2D numpy array
+        
+        print(type(pre_pwm))
+        print('hello')
+        pre_pwm[pre_pwm < 1] = 1
+        
+        
+        #for i in range(0, 4):  #iterate over each member of the PWM and replace 0s with 1
+         #   for j in range(0, cols):
+          #      print a[i,j]
+        
+        #print(pre_pwm)
 
     def load_sequence(self, seq):
         """
@@ -413,5 +437,6 @@ class PWMScan(object):
                 self.hits.loc[i, 'Gene ID'] = ' ; '.join(map(str, gene_id))
                 self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
                 self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
+                
 
 
