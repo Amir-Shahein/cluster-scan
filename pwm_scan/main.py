@@ -57,19 +57,15 @@ class PWMScan(object):
         
         with open(filename, 'r') as fh:
            pre_pwm = [[float(B) for B in line.split()] for line in fh] #process the text file into a 2D list
-        
+
         pre_pwm = np.array(pre_pwm, dtype=float) #convert the 2D array into a 2D numpy array
         
-        print(type(pre_pwm))
-        print('hello')
-        pre_pwm[pre_pwm < 1] = 1
+        pre_pwm[pre_pwm < 1] = 1 #minimum value is 1 instead of 0 (convention according to the original script)
         
+        pwm = pre_pwm/pre_pwm.sum(axis=0)[None,:]
         
-        #for i in range(0, 4):  #iterate over each member of the PWM and replace 0s with 1
-         #   for j in range(0, cols):
-          #      print a[i,j]
+        self.pwm = pwm
         
-        #print(pre_pwm)
 
     def load_sequence(self, seq):
         """
