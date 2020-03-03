@@ -207,10 +207,13 @@ class PWMScan(object):
                'C':1, 'c':1,
                'G':2, 'g':2,
                'T':3, 't':3,
-               'N':0, 'n':0} # N should be very rare in a valid genome sequence so just assign it as A
+               'N':0, 'n':0,
+               'M':0, 'm':0,
+               'R':0, 'r':0} # M, R, and N should be very rare in a valid genome sequence so just assign it as A
 
         for i, base in enumerate(str_seq): #i is the index, base is the letter  in str_seq
-            np_seq[i] = ref[base] #ref is a dictionary, so using the base as a key will give the numeric value
+            np_seq[i] = ref.get(base, 0) #ref is a dictionary, using get allows to use base as a key to get associated numeric value, with
+                                         #a default value of 0.
 
         return np_seq
 
