@@ -7,19 +7,19 @@ class PWMScan(object):
     def __init__(self):
         """
         Object attributes:
-
+        
             self.pwm: the position weight matrix
                 numpy 2D array, dtype=np.float
-
+        
             self.psm: the position score matrix
                 numpy 2D array, dtype=np.float
-
+        
             self.sequence: the (genome) sequence to be scanned
                 numpy 1D array, dtype=np.int
-
+        
             self.annot: the genome annotation
                 pandas DataFrame
-
+        
             self.hits: the scanning result hits
                 pandas DataFrame
         """
@@ -28,7 +28,7 @@ class PWMScan(object):
         self.sequence = None
         self.annot = None
         self.hits = None
-
+        
     def load_pwm(self, filename):
         """
         Args:
@@ -39,12 +39,12 @@ class PWMScan(object):
             S = fh.read().split() # split by space, tab or line break
             for s in S:
                 sites = sites + s.split(',') # further split by ',' (A - just to remove any extra commas)
-
+        
         for i in range(1, len(sites)): # A - check to make sure all sites are the same length
             if len(sites[i]) != len(sites[0]):
                 print('Input sites not identical in length!')
                 return
-
+        
         self.pwm = self.__gen_pwm(sites)
         
     def load_pwm_alternate(self, filename, n_mer):
