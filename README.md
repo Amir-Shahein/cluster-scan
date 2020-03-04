@@ -1,3 +1,5 @@
+# https://en.wikipedia.org/wiki/Position_weight_matrix#Creation for good information on PWM calculations
+
 # PWM Scan
 Position-weight-matrix (PWM) scan through a genome.
 
@@ -35,7 +37,12 @@ scan.load_annotation('example_genome_annotation.gtf') ## A - skip annotations fo
 # Launch scan and output the result in a .csv file
 scan.launch_scan(filename='output.csv', threshold=12) ## A - convert PWM into PSM (using background GC content to calculate
                                                       ## the relative likelihood)
+                                                      ## Note --  I removed a period after the 10 in argument threshold
 ```
+
+# import pwm_scan
+# scan = pwm_scan.PWMScan()
+# scan.load_pwm_alternate('MA01623.txt', 11)
 
 ## File format
 
