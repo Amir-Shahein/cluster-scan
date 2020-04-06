@@ -8,10 +8,10 @@ class PWMScan(object):
         """
         Object attributes:
         
-            self.pwm: the position weight matrix
+            self.pwm: the position weight matrix  #Note that according to wikipedia this is actually a PPM (our output)
                 numpy 2D array, dtype=np.float
         
-            self.psm: the position score matrix
+            self.psm: the position score matrix  #Note that according to wikipedia this is actually the PWM (our output)
                 numpy 2D array, dtype=np.float
         
             self.sequence: the (genome) sequence to be scanned

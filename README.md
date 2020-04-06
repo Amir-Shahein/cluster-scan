@@ -44,6 +44,9 @@ scan.launch_scan(filename='output.csv', threshold=12) ## A - convert PWM into PS
 # scan = pwm_scan.PWMScan()
 # scan.load_pwm_alternate('MA01623.txt', 11)
 
+Conversion of ddG position energy matrix (PEM) into a PWM (score relative to the background)
+
+
 ## File format
 
 The format of the input TEXT (.txt) file of target sites is very flexible. It can be comma, space or tab delimited. For example, the following three formats are all acceptable. Also note that all target sites should have the same length.
