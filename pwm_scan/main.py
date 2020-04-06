@@ -56,8 +56,8 @@ class PWMScan(object):
         pwm = np.ones((4, n_mer), np.float) #original script started at 1 as a pseudocount instead of 0... see below what I do
         
         with open(filename, 'r') as fh:
-           pre_pwm = [[float(B) for B in line.split()] for line in fh] #process the text file into a 2D list
-
+            pre_pwm = [[float(B) for B in line.split()] for line in fh] #process the text file into a 2D list
+        
         pre_pwm = np.array(pre_pwm, dtype=float) #convert the 2D array into a 2D numpy array
         
         pre_pwm[pre_pwm < 1] = 1 #minimum value is 1 instead of 0 (convention according to the original script)
@@ -65,8 +65,7 @@ class PWMScan(object):
         pwm = pre_pwm/pre_pwm.sum(axis=0)[None,:]
         
         self.pwm = pwm
-        
-
+    
     def load_sequence(self, seq):
         """
         Args:
@@ -144,7 +143,7 @@ class PWMScan(object):
 
         self.pwm = pwm
 
-    def launch_scan(self, filename=None, threshold=10., report_adjacent_genes=True,
+    def launch_scan(self, filename=None, threshold=10, report_adjacent_genes=True,
                     promoter_length=500, use_genomic_GC=False):
         """
         Args:
