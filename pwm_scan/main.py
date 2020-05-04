@@ -22,69 +22,60 @@ class PWMScan(object):
         
             self.hits: the scanning result hits
                 pandas DataFrame
+                
+            self.PWM_Kdref:  PWM in the format of Kd/Kdref, so that to obtain the Kd 
+                of a given sequence, you can multiply all the Kd/Kdref factors based on 
+                positions in the PWM, and then multiply this by the Kd of the consensus
         """
-        self.pwm = None
-        self.psm = None
         self.sequence = None
         self.annot = None
         self.hits = None
+        self.PWM_Kdref = None
         
-    def load_pwm(self, filename):
-        """
-        Args:
-            filename: The input file could be comma, tab, space delimited.
-        """
-        sites = []
-        with open(filename, 'r') as fh:  #process the file into list of sites 
-            S = fh.read().split() # split by space, tab or line break
-            for s in S:
-                sites = sites + s.split(',') # further split by ',' (A - just to remove any extra commas)
         
-        for i in range(1, len(sites)): # A - check to make sure all sites are the same length
-            if len(sites[i]) != len(sites[0]):
-                print('Input sites not identical in length!')
-                return
-        
-        self.pwm = self.__gen_pwm(sites)
-        
-    def load_pwm_alternate(self, filename, n_mer):
+    def load_Kd_Kdref_pwm(self, filename, n_mer):
         """
         Args: 
-            filename: corresponds to a file that contains a frequency matrix (ex: output from http://jaspar.genereg.net/matrix/MA0162.3/)
+            filename: corresponds to a file that contains a Kd/Kdref PWM (ex: from Swank 2019
             num_bases: number of bases in the motif
         """
-        pwm = np.ones((4, n_mer), np.float) #original script started at 1 as a pseudocount instead of 0... see below what I do
+        PWM_Kdref = np.ones((4, n_mer), np.float) #Start with 1s, because Kdref/Kdref = 1
         
         with open(filename, 'r') as fh:
-            pre_pwm = [[float(B) for B in line.split()] for line in fh] #process the text file into a 2D list
+            PWM_Kdref = [[float(B) for B in line.split()] for line in fh] #process the text file into a 2D list
         
-        pre_pwm = np.array(pre_pwm, dtype=float) #convert the 2D array into a 2D numpy array
+        PWM_Kdref = np.array(PWM_Kdref, dtype=float) #convert the 2D list into a 2D numpy array
         
-        pre_pwm[pre_pwm < 1] = 1 #minimum value is 1 instead of 0 (convention according to the original script)
+        PWM_Kdref[PWM_Kdref < 1] = 1 #minimum value is 1
+                
+        self.PWM_Kdref = PWM_Kdref
         
-        pwm = pre_pwm/pre_pwm.sum(axis=0)[None,:]
-        
-        self.pwm = pwm
+        return
     
-    def load_sequence(self, seq):
+    def load_sequence(self, seq, seqtype):
         """
         Args:
             seq: str, could be two things:
                 (1) the fasta file name
                 (2) the DNA sequence, containing only (A, C, G, T)
                     no space or other characters allowed
+            seqtype: str, 'FASTA' if (1), 'RAW' if (2)
         """
+        if self.sequence is None:
+            print('The sequence has not been input properly, it is None...')
+            return        
+        
         # If the unique characters in seq only contains the four DNA letters
-        if set(seq.lower()) == set(['a', 'c', 'g', 't']): # A - seems like a computationally intensive check
+        if seqtype == "RAW":
             self.sequence = self.__str_to_np_seq(seq)
             return
 
-        # If seq is not a DNA sequence, then seq should be the fasta file name
-        self.sequence = self.__parse_fasta(seq)
-        if self.sequence is None:
-            print('Not valid fasta format.')
-            return
-        self.sequence = self.__str_to_np_seq(self.sequence)
+        elif seqtype == "FASTA":
+            self.sequence = self.__parse_fasta(seq)
+            self.sequence = self.__str_to_np_seq(self.sequence)
+            
+        else:
+            print("You didn't input the seqtype; input a string saying 'FASTA' or 'RAW'")
 
     def load_annotation(self, filename):
         """
@@ -125,33 +116,16 @@ class PWMScan(object):
         # Create a data frame
         self.annot = pd.DataFrame(D, columns=columns)
 
-    def load_count_matrix(self, matrix):
-        """
-        Args:
-            matrix: 2-D numpy array, dtype = np.int
-                the matrix should have 4 rows with
-                row 0, 1, 2, 3 corresponding to A, C, G ,T
-        """
-        assert(matrix.shape[0] == 4)
-
-        # Create a new float array and +1 for pseudocount
-        pwm = np.array(matrix, dtype=np.float) + 1
-
-        # Sum 'downwards' across rows to get position-specific sum
-        # Usually every position should have the same number of sum
-        pwm = pwm / np.sum(pwm, axis=0)
-
-        self.pwm = pwm
-
     def launch_scan(self, filename=None, threshold=10, report_adjacent_genes=True,
                     promoter_length=500, use_genomic_GC=False):
         """
+        This function controls the flow of the script when running a scan to generate the single binding site dataframe
         Args:
             filename:
                 str, the output excel filename
 
             threshold:
-                float or int, threshold of the score above which the sequence motif is retained
+                float or int, threshold of the score (Kd/Kdref ratio) below which the sequence motif is retained
 
             report_adjacent_genes:
                 boolean
@@ -208,7 +182,7 @@ class PWMScan(object):
                'T':3, 't':3,
                'N':0, 'n':0,
                'M':0, 'm':0,
-               'R':0, 'r':0} # M, R, and N should be very rare in a valid genome sequence so just assign it as A
+               'R':0, 'r':0} # M, R, and N should be very rare in a valid genome sequence so just arbitrarily assign them to A
 
         for i, base in enumerate(str_seq): #i is the index, base is the letter  in str_seq
             np_seq[i] = ref.get(base, 0) #ref is a dictionary, using get allows to use base as a key to get associated numeric value, with
@@ -233,6 +207,9 @@ class PWMScan(object):
         return ''.join(str_seq)
 
     def __parse_fasta(self, filename):
+        
+        """Convert from FASTA file to a more RAW sequence compatible with the __str_to_np_seq function"""
+        
         with open(filename, 'r') as fh:
             lines = fh.read().splitlines()
         first = lines.pop(0)
@@ -262,52 +239,6 @@ class PWMScan(object):
             GC_count = np.sum(seq == 1) + np.sum(seq == 2)
             GC_content = GC_count / float(len(seq))
             return GC_content
-
-    def __gen_pwm(self, sites):
-        """
-        Takes a list of sites (str with identical length).
-        Returns the position weight matrix.
-
-        Args:
-            sites: list of str
-
-        Returns:
-            pwm: 2-D numpy arraym, dtype = np.float
-        """
-
-        sites = [self.__str_to_np_seq(s) for s in sites]
-
-        # Start to build position weight matrix = pwm
-        # Rows 0, 1, 2, 3 correspond to A, C, G, T, respectively, which is identical to the integer coding.
-        n_mer = len(sites[0])
-        pwm = np.ones((4, n_mer), np.float) # The position count matrix begin from 1 as pseudocount (A- not sure why, but minor)
-
-        for s in sites:
-            for i, base in enumerate(s): # For each base, add to the count matrix.
-                pwm[base, i] += 1        # The integer coding (0, 1, 2, 3) = (A, C, G, T)
-                                         # corresponds to the order of rows 0, 1, 2, 3 = A, C, G, T
-
-        pwm = pwm / np.sum(pwm[:, 1]) # Compute the position weight matrix, i.e. probability matrix (A - divide 
-                                      # by total number of  sequences, which is the sum of any column). Maximum
-                                      # value is 1 --> if every sequence has that base at a specific position.
-
-        return pwm
-
-    def __pwm_to_psm(self, pwm, GC_content=0.5):
-        """
-        Converts position weight matrix to position score matrix.
-        The background GC content is taken into account to compute the likelihood.
-        Score is the log2 likelihood.
-
-        The default background GC_content = 0.5, which is strongly recommended.
-        """
-        psm = np.zeros(pwm.shape, np.float)
-
-        psm[[0,3], :] = pwm[[0,3], :] / ((1 - GC_content) / 2) # Divide by the background frequency -> likelihood matrix
-        psm[[1,2], :] = pwm[[1,2], :] / ((    GC_content) / 2)
-
-        # log2 likelihood -> score matrix
-        return np.log2(psm)
 
     def __psm_scan(self, psm, seq, thres):
         """

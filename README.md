@@ -24,18 +24,23 @@ import pwm_scan
 scan = pwm_scan.PWMScan()
 
 # Load target sites to generate a position weight matrix
-scan.load_pwm('example_target_sites.txt') ## A - input: a bunch of target sites, output: PWM-probability of base (max 1), based on 
-                                          ## the frequency of occurences of that base in the target sites
+scan.load_pwm('example_target_sites.txt') 
+                                          ## A - input: a bunch of target sites, output: PWM-probability of base (max 1), based on 
+                                          ## the frequency of occurences of that base in the target sites. Note: probably want to use
+                                          ## load_PWM_alternate for now, which I created... or my version for delta delta G 
 
 # Load genome sequence
-scan.load_sequence('example_genome_sequence.fna') ## A - input: either ACGTs, or FASTA file. 
+scan.load_sequence('example_genome_sequence.fna') 
+                                                  ## A - input: either ACGTs, or FASTA file. 
                                                   ## output: sequence of "ACGTs" but encoded as 0123
 
 # Load annotation
-scan.load_annotation('example_genome_annotation.gtf') ## A - skip annotations for now
+scan.load_annotation('example_genome_annotation.gtf') 
+                                                        ## A - skip annotations for now
 
 # Launch scan and output the result in a .csv file
-scan.launch_scan(filename='output.csv', threshold=12) ## A - convert PWM into PSM (using background GC content to calculate
+scan.launch_scan(filename='output.csv', threshold=12) 
+                                                      ## A - convert PWM into PSM (using background GC content to calculate
                                                       ## the relative likelihood)
                                                       ## Note --  I removed a period after the 10 in argument threshold
 ```
