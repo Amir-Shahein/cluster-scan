@@ -36,8 +36,8 @@ class PWMScan(object):
     def load_Kd_Kdref_pwm(self, filename, n_mer):
         """
         Args: 
-            filename: corresponds to a file that contains a Kd/Kdref PWM (ex: from Swank 2019
-            num_bases: number of bases in the motif
+            filename: corresponds to a file that contains a Kd/Kdref PWM (ex: from Swank 2019)
+            n_mer: number of bases in the motif
         """
         PWM_Kdref = np.ones((4, n_mer), np.float) #Start with 1s, because Kdref/Kdref = 1
         
@@ -61,10 +61,6 @@ class PWMScan(object):
                     no space or other characters allowed
             seqtype: str, 'FASTA' if (1), 'RAW' if (2)
         """
-        if self.sequence is None:
-            print('The sequence has not been input properly, it is None...')
-            return        
-        
         # If the unique characters in seq only contains the four DNA letters
         if seqtype == "RAW":
             self.sequence = self.__str_to_np_seq(seq)
@@ -76,6 +72,10 @@ class PWMScan(object):
             
         else:
             print("You didn't input the seqtype; input a string saying 'FASTA' or 'RAW'")
+            
+        if self.sequence is None:
+            print('The sequence has not been input properly, it is None...')
+            return        
 
     def load_annotation(self, filename):
         """
@@ -116,7 +116,7 @@ class PWMScan(object):
         # Create a data frame
         self.annot = pd.DataFrame(D, columns=columns)
 
-    def launch_scan(self, filename=None, threshold=10, report_adjacent_genes=True,
+    def launch_scan(self, filename=None, threshold=100, report_adjacent_genes=False,
                     promoter_length=500, use_genomic_GC=False):
         """
         This function controls the flow of the script when running a scan to generate the single binding site dataframe
@@ -135,9 +135,9 @@ class PWMScan(object):
                 If reporting adjacent genes, the promoter range within which
                 the hit is defined as adjacent
 
-            use_genomic_GC:
+            use_genomic_GC: UNUSED CURRENTLY
                 boolean, whether to use the genomic GC content as
-                the background GC frequency to calculate score matrix
+                the background GC frequency... 
 
         Returns:
             self.hits:
@@ -149,6 +149,7 @@ class PWMScan(object):
         """
 
         if self.pwm is None or self.sequence is None:
+            print('Either the PWM or the SEQUENCE has not been input properly...')
             return
 
         if use_genomic_GC:
