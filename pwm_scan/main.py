@@ -8,12 +8,6 @@ class PWMScan(object):
         """
         Object attributes:
         
-            self.pwm: the position weight matrix  #Note that according to wikipedia this is actually a PPM (our output)
-                numpy 2D array, dtype=np.float
-        
-            self.psm: the position score matrix  #Note that according to wikipedia this is actually the PWM (our output)
-                numpy 2D array, dtype=np.float
-        
             self.sequence: the (genome) sequence to be scanned
                 numpy 1D array, dtype=np.int
         
@@ -148,17 +142,11 @@ class PWMScan(object):
                 in the output file in csv format.
         """
 
-        if self.pwm is None or self.sequence is None:
+        if self.PWM_Kdref is None or self.sequence is None:
             print('Either the PWM or the SEQUENCE has not been input properly...')
             return
 
-        if use_genomic_GC:
-            GC_content = self.__calc_GC(self.sequence)
-            self.psm = self.__pwm_to_psm(self.pwm, GC_content)
-        else:
-            self.psm = self.__pwm_to_psm(self.pwm)
-
-        self.hits = self.__psm_scan(self.psm, self.sequence, threshold)
+        self.hits = self.__pwm_scan(self.PWM_Kdref, self.sequence, threshold) # RUN THE SCAN!
 
         if report_adjacent_genes and not self.annot is None:
             self.__find_adjacent_genes(distance_range=promoter_length)
@@ -241,18 +229,18 @@ class PWMScan(object):
             GC_content = GC_count / float(len(seq))
             return GC_content
 
-    def __psm_scan(self, psm, seq, thres):
+    def __pwm_scan(self, PWM, seq, thres):
         """
-        The core function that performs PWM (PSM) scan
+        The core function that performs the PWM scan
         through the (genomic) sequence.
         """
-        if isinstance(seq, str): #if the genome sequence is still a string, encode it as 0123
+        if isinstance(seq, str): #if somehow the genome sequence is still a string, encode it as 0123
             seq = __str_to_np_seq(seq)
 
-        n_mer = psm.shape[1]    # length (num of cols) of the weight matrix
-        cols = np.arange(n_mer) # column indices for psm from 0 to (n_mer-1)
+        n_mer = PWM.shape[1]    # length (num of cols) of the weight matrix
+        cols = np.arange(n_mer) # array of column indices for PWM from 0 to (n_mer-1)
 
-        psm_rc = psm[::-1, ::-1] # Reverse complementary psm
+        PWM_rc = PWM[::-1, ::-1] # Reverse complementary PWM
 
         # Create an empty data frame
         colnames = ['Score', 'Sequence', 'Start', 'End', 'Strand']
@@ -267,10 +255,9 @@ class PWMScan(object):
 
             # --- The most important line of code ---
             #     Use integer coding to index the correct score from column 0 to (n_mer-1)
-            score = np.sum( psm[window, cols] ) #indexing with two np arrays subscripts members 
-                                                #specified as ([row (first member), etc.],[column (first member), etc.])
+            score = np.prod( PWM[window, cols] ) #indexing with two np arrays subscripts members as coordinates
 
-            if score > thres: #append a new row in the dataframe, with details
+            if score < thres: #append a new row in the dataframe, with details
                 hits.loc[len(hits)] = [score                       , # Score
                                        self.__np_to_str_seq(window), # Sequence
                                        i + 1                       , # Start
@@ -279,9 +266,9 @@ class PWMScan(object):
 
             # --- The most important line of code ---
             #     Use integer coding to index the correct score from column 0 to (n_mer-1)
-            score = np.sum( psm_rc[window, cols] )
+            score = np.prod( PWM_rc[window, cols] )
 
-            if score > thres:
+            if score < thres:
                 hits.loc[len(hits)] = [score                       , # Score
                                        self.__np_to_str_seq(window), # Sequence
                                        i + 1                       , # Start
