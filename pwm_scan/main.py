@@ -1,3 +1,5 @@
+#Uses material from Yu-Cheng Lin's Github project: pwm_scan (project accessed Feb. 28th 2020)
+
 import re
 import numpy as np
 import pandas as pd
