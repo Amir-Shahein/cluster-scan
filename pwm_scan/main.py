@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 class PWMScan(object):
@@ -249,7 +250,7 @@ class PWMScan(object):
                             columns=colnames)
 
         # The main loop that scans through the (genome) sequence
-        for i in range(len(seq) - n_mer + 1):
+        for i in tqdm(range(len(seq) - n_mer + 1)):
 
             window = seq[i:(i+n_mer)] #pull out the sequence we're comparing the PWM against.
 
