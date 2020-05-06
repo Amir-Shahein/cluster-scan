@@ -4,7 +4,7 @@ import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
+from dataclasses import dataclass, field
 
 class PWMScan(object):
     def __init__(self):
@@ -49,7 +49,7 @@ class PWMScan(object):
         
         return
     
-    def load_sequence(self, seq, seqtype):
+    def load_sequence(self, seq, seqtype, seqPercent=100):
         """
         Args:
             seq: str, could be two things:
@@ -57,14 +57,17 @@ class PWMScan(object):
                 (2) the DNA sequence, containing only (A, C, G, T)
                     no space or other characters allowed
             seqtype: str, 'FASTA' if (1), 'RAW' if (2)
+            seqPercent: percentage of the sequence to load... (seqs can be huge)
         """
         # If the unique characters in seq only contains the four DNA letters
         if seqtype == "RAW":
-            self.sequence = self.__str_to_np_seq(seq)
+            self.sequence = self.__str_to_np_seq(seq[:round(len(seq)*seqPercent/100)]) #just taking sequence to seqPercent
             return
 
         elif seqtype == "FASTA":
             self.sequence = self.__parse_fasta(seq)
+            if seqPercent != 100:
+                self.sequence = self.sequence[:round(len(self.sequence)*seqPercent/100)] #just taking sequence to seqPercent (note this process could be done in a more efficient way...)
             self.sequence = self.__str_to_np_seq(self.sequence)
             
         else:
@@ -82,7 +85,6 @@ class PWMScan(object):
                 The GTF file by default has start, end, strand and attribute
                 The attribute field should have 'gene_id' and 'name'
         """
-
         # Column names for the pandas data frame
         columns = ['Start', 'End', 'Strand', 'Gene ID', 'Name']
 
@@ -357,6 +359,38 @@ class PWMScan(object):
                 self.hits.loc[i, 'Gene ID'] = ' ; '.join(map(str, gene_id))
                 self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
                 self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
-                
+
+@dataclass    
+class Clusters:
+    bindingSiteSeqs: 
+        
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

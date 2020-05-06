@@ -19,12 +19,11 @@ At least two things are needed to perform a position-weight-matrix (PWM) scan:
 In addition, if you have the genome annotation in GTF format (.gtf), genes adjacent to the PWM-detected sites will be included in the output file.
 
 ```
-import pwm_scan
 
-scan = pwm_scan.PWMScan()
+scan = PWMScan()
 
 # Load target sites to generate a position weight matrix
-scan.load_pwm('example_target_sites.txt') 
+scan.load_Kd_Kdref_pwm('example_target_sites.txt') 
                                           ## A - input: a bunch of target sites, output: PWM-probability of base (max 1), based on 
                                           ## the frequency of occurences of that base in the target sites. Note: probably want to use
                                           ## load_PWM_alternate for now, which I created... or my version for delta delta G 
@@ -45,28 +44,16 @@ scan.launch_scan(filename='output.csv', threshold=12)
                                                       ## Note --  I removed a period after the 10 in argument threshold
 ```
 
-# import pwm_scan
-# scan = pwm_scan.PWMScan()
-# scan.load_pwm_alternate('MA01623.txt', 11)
+-----------
+Note that the Zif268 mouse and HUMAN PWM is similar. I believe this applies across vertebrates, so it makes sense to scan it against a human genome.
+#Typical Run for Humans with Zif268 (affinity matrix from MITOMI): 
+runfile('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/pwm_scan/main.py', wdir='/Users/transcend/Python_Stuff/python_scripts/cluster_scan/pwm_scan')
+scan = PWMScan()
+scan.load_Kd_Kdref_pwm('Zif268_AAA_pwm.txt',9)
+scan.load_sequence('GRCh38.fna', 'FASTA', 1)
 
-Conversion of ddG position energy matrix (PEM) into a PWM (score relative to the background)
+----------
 
-
-## File format
-
-The format of the input TEXT (.txt) file of target sites is very flexible. It can be comma, space or tab delimited. For example, the following three formats are all acceptable. Also note that all target sites should have the same length.
-
-```
-TTGATTCCGGTCAA,TTGACTTTCATCAA,TTGATTGCCATCAA,TTGACCGGAATCAA,TTGACGGCCGTCAA
-```
-
-```
-TTGATTCCGGTCAA TTGACTTTCATCAA TTGATTGCCATCAA TTGACCGGAATCAA TTGACGGCCGTCAA
-```
-
-```
-TTGATTCCGGTCAA <tab> TTGACTTTCATCAA <tab> TTGATTGCCATCAA <tab> TTGACCGGAATCAA <tab> TTGACGGCCGTCAA
-```
 
 FASTA and GTF are very common formats for genome sequence and genome annotations, respectively.
 
