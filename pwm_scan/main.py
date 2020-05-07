@@ -23,11 +23,18 @@ class PWMScan(object):
             self.PWM_Kdref:  PWM in the format of Kd/Kdref, so that to obtain the Kd 
                 of a given sequence, you can multiply all the Kd/Kdref factors based on 
                 positions in the PWM, and then multiply this by the Kd of the consensus
+            
+            self.n_mer: number of bases in a motif
+            
+            self.unpClusterList: unprocessed cluster list, containing ALL clusters
+            with potential sites, even if binding motif size is 9 and overlap is (-8)
         """
         self.sequence = None
         self.annot = None
         self.hits = None
         self.PWM_Kdref = None
+        self.n_mer = 
+        self.unpClusterList
         
         
     def load_Kd_Kdref_pwm(self, filename, n_mer):
@@ -46,6 +53,7 @@ class PWMScan(object):
         PWM_Kdref[PWM_Kdref < 1] = 1 #minimum value is 1
                 
         self.PWM_Kdref = PWM_Kdref
+        self.n_mer = n_mer
         
         return
     
@@ -283,6 +291,7 @@ class PWMScan(object):
         return hits
 
     def __find_adjacent_genes(self, distance_range):
+        
         """
         Args:
             distance_range: distance of promoter range in bp
@@ -360,9 +369,59 @@ class PWMScan(object):
                 self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
                 self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
 
+
+    def generate_clusters(self, maxGap):
+        
+        """
+        maxGap: the maximum gap distance between binding sites that is allowed, for
+        binding sites in the same cluster (before truncating a cluster). 
+        """
+        
+        unpClusterList = []
+        
+        sitesTemp = [] #Declare temporary variables used to build clusters and transfer to unpClusterList 
+        affinitiesTemp = []
+        startPosTemp = []
+        strandTemp = []
+        
+        for i in len(self.hits.index-1): #For each index in self.hits
+            
+            if (self.hits.loc[i+1].Start - self.hits.loc[i].End) <= (maxGap+1): #if the distance to the next site is less than t
+                
+                sitesTemp.append(self.hits.loc[i].Sequence)
+                affinitiesTemp.append(self.hits.loc[i].Score)
+                startPosTemp.append(self.hits.loc[i].Start)
+                strandTemp.append(self.hits.loc[i].Strand)
+            
+            elif (sitesTemp) : 
+                #if sitesTemp is not empty (non- vs. empty list has boolean true false), and therefore we're on the last member of a cluster
+                sitesTemp.append(self.hits.loc[i].Sequence) #append the last member of the cluster to the temporary variables
+                affinitiesTemp.append(self.hits.loc[i].Score)
+                startPosTemp.append(self.hits.loc[i].Start)
+                strandTemp.append(self.hits.loc[i].Strand)     
+                
+                #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
+                unpClusterList.append(Clusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp))
+                
+                sitesTemp = [] #Clear temporary variables
+                affinitiesTemp = []
+                startPosTemp = []
+                strandTemp = []
+                
+                
 @dataclass    
 class Clusters:
-    bindingSiteSeqs: 
+    bindingSiteSeqs: list
+    siteAffinities
+    startPos: list
+    endPos: list
+    strand: list
+    siteLength: int = 9
+    
+    
+    def __post_init__(self):
+        endPos = np.add(startPos,siteLength)
+        
         
         
 
