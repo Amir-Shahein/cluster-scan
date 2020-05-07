@@ -384,9 +384,9 @@ class PWMScan(object):
         startPosTemp = []
         strandTemp = []
         
-        for i in len(self.hits.index-1): #For each index in self.hits
+        for i in tqdm(range(len(self.hits.index))): #For each index in self.hits
             
-            if (self.hits.loc[i+1].Start - self.hits.loc[i].End) <= (maxGap+1): #if the distance to the next site is less than t
+            if (self.hits.loc[i+1].Start - self.hits.loc[i].End -1) <= (maxGap): #if the distance to the next site is less than t
                 
                 sitesTemp.append(self.hits.loc[i].Sequence)
                 affinitiesTemp.append(self.hits.loc[i].Score)
@@ -407,21 +407,23 @@ class PWMScan(object):
                 affinitiesTemp = []
                 startPosTemp = []
                 strandTemp = []
-                
-                
+                 
 @dataclass    
 class Clusters:
     bindingSiteSeqs: list
-    siteAffinities
+    siteAffinities: list
     startPos: list
-    endPos: list
+    endPos: list field(init=False)
     strand: list
+    spacing: list field(init=False)
     siteLength: int = 9
     
     
     def __post_init__(self):
-        endPos = np.add(startPos,siteLength)
         
+        endPos = [(x+(siteLength-1)) for x in startPos]
+        spacing = [(startPos[y+1] - endPos[y] -1) for y in range(len(startPos)-1)]
+
         
         
 
