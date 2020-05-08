@@ -444,7 +444,7 @@ class PWMScan(object):
                 startPosTemp.append(self.hits.loc[i].Start)
                 strandTemp.append(self.hits.loc[i].Strand)     
                 
-                #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
+                #Transform temporary variables into a Clusters object and store it as an element of the list ovlpClusterClist
                 ovlpClusterList.append(Clusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp))
                 
                 sitesTemp = [] #Clear temporary variables
