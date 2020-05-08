@@ -33,8 +33,9 @@ class PWMScan(object):
         self.annot = None
         self.hits = None
         self.PWM_Kdref = None
-        self.n_mer = 
-        self.unpClusterList
+        self.n_mer = None
+        self.unpClusterList = None
+        self.ovlpClusterList = None
         
         
     def load_Kd_Kdref_pwm(self, filename, n_mer):
@@ -384,10 +385,12 @@ class PWMScan(object):
         startPosTemp = []
         strandTemp = []
         
-        for i in tqdm(range(len(self.hits.index))): #For each index in self.hits
-            
-            if (self.hits.loc[i+1].Start - self.hits.loc[i].End -1) <= (maxGap): #if the distance to the next site is less than t
-                
+        for i in tqdm(range(len(self.hits.index)-1)): #For each index in self.hits
+            #gapDist = self.hits.loc[i+1].Start - self.hits.loc[i].End -1   
+         
+            #if the distance to the next site is less than the maximum gap distance input, but greater than the minimum gap distance (biggest overlap allowed)
+            #if #((gapDist <= maxGap) and (gapDist >= minGap)) -- note, it will make some sense to incorporate this at some point.
+            if ((self.hits.loc[i+1].Start - self.hits.loc[i].End -1) <= maxGap):
                 sitesTemp.append(self.hits.loc[i].Sequence)
                 affinitiesTemp.append(self.hits.loc[i].Score)
                 startPosTemp.append(self.hits.loc[i].Start)
@@ -407,25 +410,66 @@ class PWMScan(object):
                 affinitiesTemp = []
                 startPosTemp = []
                 strandTemp = []
+                
+        self.unpClusterList = unpClusterList
+        
+    def generate_overlapping_clusters(self):
+        
+        """
+        maxGap: fixed here. 
+        """
+        
+        ovlpClusterList = []
+        
+        sitesTemp = [] #Declare temporary variables used to build clusters and transfer to unpClusterList 
+        affinitiesTemp = []
+        startPosTemp = []
+        strandTemp = []
+        
+        for i in tqdm(range(len(self.hits.index)-1)): #For each index in self.hits
+            #gapDist = self.hits.loc[i+1].Start - self.hits.loc[i].End -1   
+         
+            #if the distance to the next site is less than the maximum gap distance input, but greater than the minimum gap distance (biggest overlap allowed)
+            #if #((gapDist <= maxGap) and (gapDist >= minGap)) -- note, it will make some sense to incorporate this at some point.
+            if ((self.hits.loc[i+1].Start - self.hits.loc[i].End -1) <= -1):
+                sitesTemp.append(self.hits.loc[i].Sequence)
+                affinitiesTemp.append(self.hits.loc[i].Score)
+                startPosTemp.append(self.hits.loc[i].Start)
+                strandTemp.append(self.hits.loc[i].Strand)
+            
+            elif (sitesTemp) : 
+                #if sitesTemp is not empty (non- vs. empty list has boolean true false), and therefore we're on the last member of a cluster
+                sitesTemp.append(self.hits.loc[i].Sequence) #append the last member of the cluster to the temporary variables
+                affinitiesTemp.append(self.hits.loc[i].Score)
+                startPosTemp.append(self.hits.loc[i].Start)
+                strandTemp.append(self.hits.loc[i].Strand)     
+                
+                #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
+                ovlpClusterList.append(Clusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp))
+                
+                sitesTemp = [] #Clear temporary variables
+                affinitiesTemp = []
+                startPosTemp = []
+                strandTemp = []
+                
+        self.ovlpClusterList = ovlpClusterList        
                  
 @dataclass    
 class Clusters:
     bindingSiteSeqs: list
     siteAffinities: list
     startPos: list
-    endPos: list field(init=False)
+    endPos: list = field(init=False)
     strand: list
-    spacing: list field(init=False)
+    spacing: list = field(init=False)
     siteLength: int = 9
     
     
     def __post_init__(self):
         
-        endPos = [(x+(siteLength-1)) for x in startPos]
-        spacing = [(startPos[y+1] - endPos[y] -1) for y in range(len(startPos)-1)]
+        self.endPos = [(x+(self.siteLength-1)) for x in self.startPos]
+        self.spacing = [(self.startPos[y+1] - self.endPos[y] -1) for y in range(len(self.startPos)-1)]
 
-        
-        
 
 
 
