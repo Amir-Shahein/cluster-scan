@@ -115,6 +115,7 @@ class PWMScan(object):
                 attribute = entry[8]
 
                 # Use regexp to get the gene_id and name
+                # attribute is the string to search, .group() retrieves the match, in green is the match to search for
                 gene_id = re.search('gene_id\s".*?";', attribute).group(0)[9:-2]
                 name = re.search('name\s".*?";', attribute).group(0)[6:-2]
 

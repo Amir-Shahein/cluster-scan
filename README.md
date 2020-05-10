@@ -51,8 +51,14 @@ runfile('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/pwm_scan/main
 scan = PWMScan()
 scan.load_Kd_Kdref_pwm('Zif268_AAA_pwm.txt',9)
 scan.load_sequence('GRCh38.fna', 'FASTA', 0.01) 
+scan.load_annotation('GCF_000001405.39_GRCh38_p13_genomic.gtf')
 scan.launch_scan(threshold=50)
 scan.generate_clusters(35)
+scan.generate_overlapping_clusters()
+----------
+
+To view the list of Clusters objects as a dataframe: pd.DataFrame([vars(s) for s in scan.ovlpClusterList])
+
 ----------
 
 
