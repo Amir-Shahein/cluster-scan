@@ -1,10 +1,11 @@
-#Uses material from Yu-Cheng Lin's Github project: pwm_scan (project accessed Feb. 28th 2020)
+#This script uses some material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
 
 import re
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from dataclasses import dataclass, field
+from itertools import dropwhile
 
 class PWMScan(object):
     def __init__(self):
@@ -101,7 +102,7 @@ class PWMScan(object):
         D = {key:[] for key in columns}
 
         with open(filename, 'r') as fh:
-            for line in fh:
+            for line in dropwhile(self.is_comment, fh): #https://cmdlinetips.com/2018/01/3-ways-to-read-a-file-and-skip-initial-comments-in-python/
                 entry = line.strip().split('\t')
 
                 # GTF format
@@ -113,17 +114,26 @@ class PWMScan(object):
                 D['Strand'].append(entry[6])
 
                 attribute = entry[8]
-
+                print(attribute)
                 # Use regexp to get the gene_id and name
-                # attribute is the string to search, .group() retrieves the match, in green is the match to search for
+                # attribute is the string to search within, in green is what to search for, .group() retrieves (is) the match, 
                 gene_id = re.search('gene_id\s".*?";', attribute).group(0)[9:-2]
-                name = re.search('name\s".*?";', attribute).group(0)[6:-2]
+                print(gene_id)
+                name = re.search('product\s".*?";', attribute).group(0)[9:-2]
 
                 D['Gene ID'].append(gene_id)
                 D['Name'].append(name)
 
         # Create a data frame
         self.annot = pd.DataFrame(D, columns=columns)
+        
+    def is_comment(self, s):
+        """function that checks if a line
+            starts with some character, here
+            # to identify that the line is a comment
+        """
+        #return true if a line starts with #
+        return s.startswith('#')
 
     def launch_scan(self, filename=None, threshold=100, report_adjacent_genes=False,
                     promoter_length=500, use_genomic_GC=False):
@@ -318,8 +328,8 @@ class PWMScan(object):
                               'End'   :entry['End']   ,
                               'Strand':entry['Strand']})
 
-        # Outer for loop --- for each PWM hit
-        for i in range(len(self.hits)):
+        # Outer for loop --- for each PWM hit: Can probably just change this to FOR EACH CLUSTERS HIT!
+        for i in tqdm(range(len(self.hits))):
 
             # ith row -> pandas series
             hit = self.hits.iloc[i, :]
@@ -338,7 +348,7 @@ class PWMScan(object):
             for j, intv in enumerate(intervals):
 
                 if hit_loc < intv['Start'] - 500:
-                    continue
+                    continue #move to the next loop iteration
 
                 if hit_loc > intv['End'] + 500:
                     continue
@@ -367,7 +377,7 @@ class PWMScan(object):
 
             # If the gene_id != []
             if gene_id:
-                self.hits.loc[i, 'Gene ID'] = ' ; '.join(map(str, gene_id))
+                self.hits.loc[i, 'Gene ID'] = ' ; '.join(map(str, gene_id)) #Turns each element of the iterable 'gene_id' into a string, and then concatenates the elements with a ; in between them
                 self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
                 self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
 

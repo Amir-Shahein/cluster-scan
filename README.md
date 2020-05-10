@@ -51,7 +51,7 @@ runfile('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/pwm_scan/main
 scan = PWMScan()
 scan.load_Kd_Kdref_pwm('Zif268_AAA_pwm.txt',9)
 scan.load_sequence('GRCh38.fna', 'FASTA', 0.01) 
-scan.load_annotation('GCF_000001405.39_GRCh38_p13_genomic.gtf')
+scan.load_annotation('GCF_000001405.39_GRCh38.p13_genomic.gtf')
 scan.launch_scan(threshold=50)
 scan.generate_clusters(35)
 scan.generate_overlapping_clusters()
@@ -71,3 +71,30 @@ The gene transfer format (GTF) for genome annotation: <https://en.wikipedia.org/
 ## Dependency
 
 `numpy`, `pandas`, `re`
+
+---------------------RANDOM DOCUMENTATION ON THE APPROACH---------------------
+Note: The original scan took the following approach to annotations: Use the major 
+.fna file for the organism (e.g. https://www.ncbi.nlm.nih.gov/assembly/GCF_000001405.39),
+then find CDS start sites (with the corresponding gene name/ID), identify the 
+position range corresponding to -500~bp (or however long) upstream of this TSS 
+(an idealistic promoter region), and see if anything in self.hits is within that position range. 
+One problem I envision with this approach, is that some .fna files have multiple 
+labels (i.e. not just CDS; exon, etc.), and I was not sure which of these have 
+upstream regions that correspond to promoters. Also, this approach is a bit rough.
+==>An approach that is seemingly more straightforward, that I'm currently using, 
+relies on the EPD (eukaryotic promoter database, it's actually curated by the 
+SIB + EPFL). This database identifies transcription start sites (TSSs) in differet organisms, which have been
+validated experimentally (the data is actually maintained for the purpose of 
+identifying promoters), and through the website you can obtain whatever length 
+of sequence before and after the TSS in a BED file (I believe this is a state-of-the-art 
+'high-throughput' way to identify promoters) -- https://epd.epfl.ch/get_promoters.ph
+==>I can then simply run the scan on these extracted sequences (to generate self.hits
+from the beginning), save an extra column with the gene name, an extra column with 
+the distance to the TSS, and then collate self.hits into clusters, preserving both 
+of these columns. 
+==>A benefit of this approach is also that there is dramatically less sequence to 
+scan through -- e.g. 18 million bases for the human genome. However, it still makes sense 
+to do both this approach and scan the entire organism's genome, because promoters aren't
+everything... there is action-at-a-distance in gene regulation (we're not even extracting
+the enhancers). Unfortunately, for the time being I'm unaware of any solid 
+enhancer databases (I don't think this is well known), but this can be incorporated at a later date. 
