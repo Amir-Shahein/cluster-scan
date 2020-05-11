@@ -98,3 +98,11 @@ to do both this approach and scan the entire organism's genome, because promoter
 everything... there is action-at-a-distance in gene regulation (we're not even extracting
 the enhancers). Unfortunately, for the time being I'm unaware of any solid 
 enhancer databases (I don't think this is well known), but this can be incorporated at a later date. 
+
+
+Note: Currently I'm using EPDnew sequence extraction, and they don't provide much info. I'm trusting
+that what they return is -1000 and +100 of the TSS when looking at it 5' to 3' (this needs to be
+confirmed). However, they do not provide whether the sequence is the + or - strand in this file. For now
+in these DataFrames, I can include strand information as C (coding) and N (noncoding), and in the future, if I want to 
+label it as being the + or - strand objectively, then I would need to match the EPDnew ID against FPS file
+(https://epd.epfl.ch/get_promoters.php) and retrieve the + or - from there. 

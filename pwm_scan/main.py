@@ -1,4 +1,6 @@
-#This script uses some material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
+# amir.shahein@epfl.ch
+# This script uses some material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
+
 
 import re
 import numpy as np
@@ -21,6 +23,9 @@ class PWMScan(object):
             self.hits: the scanning result hits
                 pandas DataFrame
                 
+            self.reg_hits: the hits result of scanning regulatory sequence
+                pandas DataFrame
+                
             self.PWM_Kdref:  PWM in the format of Kd/Kdref, so that to obtain the Kd 
                 of a given sequence, you can multiply all the Kd/Kdref factors based on 
                 positions in the PWM, and then multiply this by the Kd of the consensus
@@ -33,6 +38,7 @@ class PWMScan(object):
         self.sequence = None
         self.annot = None
         self.hits = None
+        self.reg_hits = None
         self.PWM_Kdref = None
         self.n_mer = None
         self.unpClusterList = None
@@ -208,7 +214,7 @@ class PWMScan(object):
             
             length3Prime:
                 This assumes the user is using promoter regions starting at the TSS, with an upstream and downstream range
-                length downstream of TSS
+                length downstream of TSS (note that length5Prime 100 and length3Prime 100 would correspond to 201bp)
         """
         
         if self.PWM_Kdref is None:
@@ -218,19 +224,34 @@ class PWMScan(object):
         with open(input_file, 'r') as fh:
             lines = fh.read().splitlines()
         
-        TSS_EPDnew_ID = lines.pop(0).split()[1] #remove the first line from lines, and 
+        ###################### Declare things to feed into pwm_scan
+        n_mer = self.PWM_Kdref.shape[1]    # length (num of cols) of the weight matrix
+        cols = np.arange(n_mer) # array of column indices for PWM from 0 to (n_mer-1)
+        PWM_rc = self.PWM_Kdref[::-1, ::-1] # Reverse complementary PWM
+        # Create an empty data frame
+        colnames = ['Score', 'Sequence', 'Start', 'End', 'Strand', 'EPDnew_ID']
+        self.reg_hits = pd.DataFrame({name:[] for name in colnames},
+                            columns=colnames)
+        #######################
+        
+        TSS_EPDnew_ID = lines.pop(0).split()[1] #remove the first line from lines, and access its EPDnew ID
+        iStart = 0
         
         for i in tqdm(range(len(lines))): #iterate through the lines in the file
-            #deal with the first iteration
+            
             if lines[i].startswith('>'):
-                line_start
-                sequence = 
                 
-                TSS_EPDnew_ID = #parse line to retrieve EPDnew_ID
+                seq = ''.join(lines[iStart:i]) #pull out the promoter sequence corresponding to TSS_EPDnew_ID
+                
+                seq = seq.__str_to_np_seq(seq)
+                
+                pwm_scan_multifasta(self.PWM_Kdref, PWM_rc, seq, threshold, n_mer, cols, TSS_EPDnew_ID, length5Prime, length3Prime)
+                
+                TSS_EPDnew_ID = lines[i].split()[1]
+                
+                iStart = i+1
                 
                 
-        
-        reg_hits =
 
     def __str_to_np_seq(self, str_seq):
         """
@@ -352,6 +373,46 @@ class PWMScan(object):
                                        '-'                         ] # Strand
 
         return hits
+    
+    def __pwm_scan_multifasta(self, PWM, PWM_rc, seq, thresh, n_mer, cols, TSS_EPDnew_ID, length5Prime, length3Prime):
+                """
+        The core function that performs the PWM scan
+        through the regulatory sequences.
+        """
+        
+        # The main loop that scans through the (genome) sequence
+        for i in tqdm(range(len(seq) - n_mer + 1)):
+
+            window = seq[i:(i+n_mer)] #pull out the sequence we're comparing the PWM against.
+
+            # --- The most important line of code ---
+            #     Use integer coding to index the correct score from column 0 to (n_mer-1)
+            score = np.prod( PWM[window, cols] ) #indexing with two np arrays subscripts members as coordinates
+
+            if score < thres: #append a new row in the dataframe, with details
+                self.reg_hitshits.loc[len(self.reg_hits)] = [score , # Score
+                                       self.__np_to_str_seq(window), # Sequence
+                                       i + 1                       , # Start
+                                       i + n_mer                   , # End
+                                       'C'                         , # Coding Strand
+                                       i -length5Prime             , # Distance of binding site's first base relative to TSS
+                                       TSS_EPDnew_ID               ] # EPDnew ID
+
+            # --- The most important line of code ---
+            #     Use integer coding to index the correct score from column 0 to (n_mer-1)
+            score = np.prod( PWM_rc[window, cols] )
+
+            if score < thres:
+                self.reg_hits.loc[len(self.reg_hitshits)] = [score , # Score
+                                       self.__np_to_str_seq(window), # Sequence
+                                       i + 1                       , # Start
+                                       i + n_mer                   , # End
+                                       'N'                         , # Non-coding Strand
+                                       i -length5Prime
+                                       TSS_EPDnew_ID               ] # EPDnew ID
+        
+        
+        
 
     def __find_adjacent_genes(self, distance_range):
         
