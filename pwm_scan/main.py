@@ -374,17 +374,18 @@ class PWMScan(object):
 
         return hits
     
-    def __pwm_scan_multifasta(self, PWM, PWM_rc, seq, thresh, n_mer, cols, TSS_EPDnew_ID, length5Prime, length3Prime):
+    def __pwm_scan_multifasta(self, PWM, PWM_rc, seq, thresh, n_mer, cols, TSS_EPDnew_ID, length5Prime):
                 """
         The core function that performs the PWM scan
         through the regulatory sequences.
         """
         
         # The main loop that scans through the (genome) sequence
+        
         for i in tqdm(range(len(seq) - n_mer + 1)):
-
+            
             window = seq[i:(i+n_mer)] #pull out the sequence we're comparing the PWM against.
-
+            
             # --- The most important line of code ---
             #     Use integer coding to index the correct score from column 0 to (n_mer-1)
             score = np.prod( PWM[window, cols] ) #indexing with two np arrays subscripts members as coordinates
@@ -392,10 +393,9 @@ class PWMScan(object):
             if score < thres: #append a new row in the dataframe, with details
                 self.reg_hitshits.loc[len(self.reg_hits)] = [score , # Score
                                        self.__np_to_str_seq(window), # Sequence
-                                       i + 1                       , # Start
-                                       i + n_mer                   , # End
+                                       i + -length5Prime           , # Distance of binding site's first base relative to TSS
+                                       i -length5Prime + n_mer -1  , # End
                                        'C'                         , # Coding Strand
-                                       i -length5Prime             , # Distance of binding site's first base relative to TSS
                                        TSS_EPDnew_ID               ] # EPDnew ID
 
             # --- The most important line of code ---
@@ -405,15 +405,13 @@ class PWMScan(object):
             if score < thres:
                 self.reg_hits.loc[len(self.reg_hitshits)] = [score , # Score
                                        self.__np_to_str_seq(window), # Sequence
-                                       i + 1                       , # Start
-                                       i + n_mer                   , # End
+                                       i -length5Prime             , # Distance of binding site's last base relative to TSS
+                                       i -length5Prime + n_mer -1  , # End
                                        'N'                         , # Non-coding Strand
-                                       i -length5Prime
                                        TSS_EPDnew_ID               ] # EPDnew ID
         
         
         
-
     def __find_adjacent_genes(self, distance_range):
         
         """
