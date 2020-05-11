@@ -63,11 +63,11 @@ class PWMScan(object):
         """
         Args:
             seq: str, could be two things:
-                (1) the fasta file name
+                (1) the fasta file name of raw sequence
                 (2) the DNA sequence, containing only (A, C, G, T)
                     no space or other characters allowed
             seqtype: str, 'FASTA' if (1), 'RAW' if (2)
-            seqPercent: percentage of the sequence to load... (seqs can be huge)
+            seqPercent: percentage of the sequence to load... (standard genome seqs can be huge)
         """
         # If the unique characters in seq only contains the four DNA letters
         if seqtype == "RAW":
@@ -86,9 +86,10 @@ class PWMScan(object):
         if self.sequence is None:
             print('The sequence has not been input properly, it is None...')
             return        
-
+        
     def load_annotation(self, filename):
         """
+        NOTE: Based on my current workflow, I don't use this for the annotations'
         Args:
             filename:
                 str, the name of the annotation file in GTF format
@@ -119,7 +120,10 @@ class PWMScan(object):
                 # attribute is the string to search within, in green is what to search for, .group() retrieves (is) the match, 
                 gene_id = re.search('gene_id\s".*?";', attribute).group(0)[9:-2]
                 print(gene_id)
-                name = re.search('product\s".*?";', attribute).group(0)[9:-2]
+                name = re.search('product\s".*?";', attribute).group(0)[9:-2] #Note that this needs to be fixed, 
+                                                                            #because only exons and CDS regions have 'product' 
+                                                                            #attribute, but this led me to question which regions 
+                                                                            #(e.g. gene, exon) I should be using anyway, which led to a new approach
 
                 D['Gene ID'].append(gene_id)
                 D['Name'].append(name)
@@ -135,12 +139,12 @@ class PWMScan(object):
         #return true if a line starts with #
         return s.startswith('#')
 
-    def launch_scan(self, filename=None, threshold=100, report_adjacent_genes=False,
+    def launch_scan(self, output_file=None, threshold=100, report_adjacent_genes=False,
                     promoter_length=500, use_genomic_GC=False):
         """
         This function controls the flow of the script when running a scan to generate the single binding site dataframe
         Args:
-            filename:
+            output_file:
                 str, the output excel filename
 
             threshold:
@@ -176,10 +180,57 @@ class PWMScan(object):
         if report_adjacent_genes and not self.annot is None:
             self.__find_adjacent_genes(distance_range=promoter_length)
 
-        if not filename is None:
-            self.hits.to_csv(filename)
+        if not output_file is None:
+            self.hits.to_csv(output_file)
 
         return self.hits
+    
+    def launch_scan_multifasta(self, input_file, output_file=None, threshold=100,
+                    length5Prime=1000, length3Prime=100, use_genomic_GC=False):
+        """
+        This function is an alternative scan for multifasta files, designed for the use-case where
+        the user extracts a set of regulatory sequences (e.g. promoters from EPDnew) in a .fa file,
+        and wants to cluster scan them, while retaining the labels (>the first line comment) for
+        each of the sequences in a column in the output dataframe.
+        Args:
+            input_file:
+                file name of the .fa file with multiple FASTA formatted sequences
+                
+            output_file:
+                str, the output excel filename    
+                
+            threshold:
+                float or int, threshold of the score (Kd/Kdref ratio) below which the sequence motif is retained
+                
+            length5Prime:
+                This assumes the user is using promoter regions starting at the TSS, with an upstream and downstream range
+                length upstream of TSS 
+            
+            length3Prime:
+                This assumes the user is using promoter regions starting at the TSS, with an upstream and downstream range
+                length downstream of TSS
+        """
+        
+        if self.PWM_Kdref is None:
+            print('First input the Kd/Kdref PWM...')
+            return
+        
+        with open(input_file, 'r') as fh:
+            lines = fh.read().splitlines()
+        
+        TSS_EPDnew_ID = lines.pop(0).split()[1] #remove the first line from lines, and 
+        
+        for i in tqdm(range(len(lines))): #iterate through the lines in the file
+            #deal with the first iteration
+            if lines[i].startswith('>'):
+                line_start
+                sequence = 
+                
+                TSS_EPDnew_ID = #parse line to retrieve EPDnew_ID
+                
+                
+        
+        reg_hits =
 
     def __str_to_np_seq(self, str_seq):
         """
@@ -305,6 +356,7 @@ class PWMScan(object):
     def __find_adjacent_genes(self, distance_range):
         
         """
+        NOTE: Based on my current workflow, I don't use this for the annotations
         Args:
             distance_range: distance of promoter range in bp
 
