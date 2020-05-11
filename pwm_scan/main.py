@@ -1,7 +1,6 @@
 # amir.shahein@epfl.ch
 # This script uses some material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
 
-
 import re
 import numpy as np
 import pandas as pd
@@ -519,7 +518,7 @@ class PWMScan(object):
                 strandTemp.append(self.hits.loc[i].Strand)
             
             elif (sitesTemp) : 
-                #if sitesTemp is not empty (non- vs. empty list has boolean true false), and therefore we're on the last member of a cluster
+                #if sitesTemp is not empty, and therefore we're on the last member of a cluster
                 sitesTemp.append(self.hits.loc[i].Sequence) #append the last member of the cluster to the temporary variables
                 affinitiesTemp.append(self.hits.loc[i].Score)
                 startPosTemp.append(self.hits.loc[i].Start)
@@ -527,6 +526,55 @@ class PWMScan(object):
                 
                 #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
                 unpClusterList.append(Clusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp))
+                
+                sitesTemp = [] #Clear temporary variables
+                affinitiesTemp = []
+                startPosTemp = []
+                strandTemp = []
+        
+        if (maxGap <= -1):
+            self.ovlpClusterList = unpClusterList
+        else:
+            self.unpClusterList = unpClusterList
+            
+    def generate_clusters_multifasta(self, maxGap):
+        
+        """
+        This is the alternative method that compiles single binding site hits into 
+        clusters when you're using extracted regulatory sequences passed as input
+        through a file with multiple FASTA seqs.
+        maxGap: the maximum gap distance between binding sites that is allowed, for
+        binding sites in the same cluster (before truncating a cluster). 
+        """
+        
+        unpClusterList = []
+        sitesTemp = [] #Declare temporary variables used to build clusters and transfer to unpClusterList 
+        affinitiesTemp = []
+        startPosTemp = []
+        strandTemp = []
+        
+        
+        for i in tqdm(range(len(self.hits.index)-1)): #iterate over self.hits
+            #gapDist = self.hits.loc[i+1].Start - self.hits.loc[i].End -1   
+         
+            #if the distance to the next site is less than the maximum gap distance input, but greater than the minimum gap distance (biggest overlap allowed)
+            #if #((gapDist <= maxGap) and (gapDist >= minGap)) -- note, it will make some sense to incorporate this at some point.
+            if (((self.hits.loc[i+1].Start - self.hits.loc[i].End -1) <= maxGap) and (self.hits.loc[i+1].EPDnew_ID == self.hits.loc[i].EPDnew_ID)): #also restrict cluster hits to same promoter
+                sitesTemp.append(self.hits.loc[i].Sequence)
+                affinitiesTemp.append(self.hits.loc[i].Score)
+                startPosTemp.append(self.hits.loc[i].Start)
+                strandTemp.append(self.hits.loc[i].Strand)
+            
+            elif (sitesTemp) : 
+                #if sitesTemp is not empty, and therefore we're on the last member of a cluster
+                sitesTemp.append(self.hits.loc[i].Sequence) #append the last member of the cluster to the temporary variables
+                affinitiesTemp.append(self.hits.loc[i].Score)
+                startPosTemp.append(self.hits.loc[i].Start)
+                strandTemp.append(self.hits.loc[i].Strand)
+                EPDnew_ID = self.hits.loc[i].EPDnew_ID
+                
+                #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
+                unpClusterList.append(AnnotatedClusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp, EPDnew_ID))
                 
                 sitesTemp = [] #Clear temporary variables
                 affinitiesTemp = []
@@ -548,23 +596,14 @@ class Clusters:
     spacing: list = field(init=False)
     siteLength: int = 9
     
-    
     def __post_init__(self):
         
         self.endPos = [(x+(self.siteLength-1)) for x in self.startPos]
         self.spacing = [(self.startPos[y+1] - self.endPos[y] -1) for y in range(len(self.startPos)-1)]
 
-
-
-
-
-
-
-
-
-
-
-
+@dataclass
+class AnnotatedClusters(Clusters): # AnnotatedClusters is a child class of Clusters, with the additional attribute geneID
+    geneID: str = 'UNKNOWN' #This default value should actually never get triggered
 
 
 
