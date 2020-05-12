@@ -50,14 +50,16 @@ Note that the Zif268 mouse and HUMAN PWM is similar. I believe this applies acro
 runfile('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/pwm_scan/main.py', wdir='/Users/transcend/Python_Stuff/python_scripts/cluster_scan/pwm_scan')
 scan = PWMScan()
 scan.load_Kd_Kdref_pwm('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/Zif268_AAA_pwm.txt',9)
+
 scan.load_sequence('GRCh38.fna', 'FASTA', 0.01) 
 scan.launch_scan(threshold=50)
 scan.generate_clusters(35)
 scan.generate_overlapping_clusters()
 
 
-Note: alternatively, skip load_sequence, and use 
+#alternatively, skip load_sequence, and use this for multifasta/regulatory seq
 scan.launch_scan_multifasta('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/hg38_EPDnewSeqExtract.fa')
+scan.generate_clusters_multifasta(scan.reg_hits, 35)
 ----------
 
 To view the list of Clusters objects as a dataframe: pd.DataFrame([vars(s) for s in scan.ovlpClusterList])

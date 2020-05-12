@@ -537,7 +537,7 @@ class PWMScan(object):
         else:
             self.unpClusterList = unpClusterList
             
-    def generate_clusters_multifasta(self, maxGap):
+    def generate_clusters_multifasta(self, regHitsDF, maxGap):
         
         """
         This is the alternative method that compiles single binding site hits into 
@@ -554,27 +554,27 @@ class PWMScan(object):
         strandTemp = []
         
         
-        for i in tqdm(range(len(self.hits.index)-1)): #iterate over self.hits
+        for i in tqdm(range(len(regHitsDF.index)-1)): #iterate over self.hits
             #gapDist = self.hits.loc[i+1].Start - self.hits.loc[i].End -1   
          
             #if the distance to the next site is less than the maximum gap distance input, but greater than the minimum gap distance (biggest overlap allowed)
             #if #((gapDist <= maxGap) and (gapDist >= minGap)) -- note, it will make some sense to incorporate this at some point.
-            if (((self.hits.loc[i+1].Start - self.hits.loc[i].End -1) <= maxGap) and (self.hits.loc[i+1].EPDnew_ID == self.hits.loc[i].EPDnew_ID)): #also restrict cluster hits to same promoter
-                sitesTemp.append(self.hits.loc[i].Sequence)
-                affinitiesTemp.append(self.hits.loc[i].Score)
-                startPosTemp.append(self.hits.loc[i].Start)
-                strandTemp.append(self.hits.loc[i].Strand)
+            if (((regHitsDF.loc[i+1].Start - regHitsDF.loc[i].End -1) <= maxGap) and (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID)): #also restrict cluster hits to same promoter
+                sitesTemp.append(regHitsDF.loc[i].Sequence)
+                affinitiesTemp.append(regHitsDF.loc[i].Score)
+                startPosTemp.append(regHitsDF.loc[i].Start)
+                strandTemp.append(regHitsDF.loc[i].Strand)
             
             elif (sitesTemp) : 
-                #if sitesTemp is not empty, and therefore we're on the last member of a cluster
-                sitesTemp.append(self.hits.loc[i].Sequence) #append the last member of the cluster to the temporary variables
-                affinitiesTemp.append(self.hits.loc[i].Score)
-                startPosTemp.append(self.hits.loc[i].Start)
-                strandTemp.append(self.hits.loc[i].Strand)
-                EPDnew_ID = self.hits.loc[i].EPDnew_ID
+                #else if sitesTemp is not empty, or EPDnew_ID is not ==, and therefore we're on the last member of a cluster:
+                sitesTemp.append(regHitsDF.loc[i].Sequence) #append the last member of the cluster to the temporary variables
+                affinitiesTemp.append(regHitsDF.loc[i].Score)
+                startPosTemp.append(regHitsDF.loc[i].Start)
+                strandTemp.append(regHitsDF.loc[i].Strand)
+                EPDnew_ID = regHitsDF.loc[i].EPDnew_ID #also append the cluster's promoter region
                 
                 #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
-                unpClusterList.append(AnnotatedClusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp, EPDnew_ID))
+                unpClusterList.append(AnnotatedClusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp, 9, EPDnew_ID)) #Note: change hard-encoded 9 to self.n_mer
                 
                 sitesTemp = [] #Clear temporary variables
                 affinitiesTemp = []
@@ -597,7 +597,6 @@ class Clusters:
     siteLength: int = 9
     
     def __post_init__(self):
-        
         self.endPos = [(x+(self.siteLength-1)) for x in self.startPos]
         self.spacing = [(self.startPos[y+1] - self.endPos[y] -1) for y in range(len(self.startPos)-1)]
 
