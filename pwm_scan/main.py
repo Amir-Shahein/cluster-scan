@@ -559,7 +559,7 @@ class PWMScan(object):
         startPosTemp = []
         strandTemp = []
         
-        
+        #Testing out git
         for i in tqdm(range(len(regHitsDF.index)-1)): #iterate over self.hits
             #gapDist = self.hits.loc[i+1].Start - self.hits.loc[i].End -1   
          
