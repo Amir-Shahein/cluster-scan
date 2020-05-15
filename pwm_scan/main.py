@@ -527,7 +527,7 @@ class PWMScan(object):
                 strandTemp.append(self.hits.loc[i].Strand)     
                 
                 #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
-                unpClusterList.append(Clusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp))
+                unpClusterList.append(RegEle(sitesTemp, affinitiesTemp, startPosTemp, strandTemp))
                 
                 sitesTemp = [] #Clear temporary variables
                 affinitiesTemp = []
@@ -539,7 +539,7 @@ class PWMScan(object):
         else:
             self.unpClusterList = unpClusterList
             
-    def generate_clusters_multifasta(self, regHitsDF, maxGap):
+    def generate_reg_elements_clusters(self, regHitsDF, maxGap, siteLength=None):
         
         """
         This is the alternative method that compiles single binding site hits into 
@@ -552,40 +552,67 @@ class PWMScan(object):
         maxGap: the maximum gap distance between binding sites that is allowed, for
         binding sites in the same cluster (before truncating a cluster). 
         """
-        regElementList = []
-        unpClusterList = []
-        sitesTemp = [] #Declare temporary variables used to build clusters and transfer to unpClusterList 
-        affinitiesTemp = []
-        startPosTemp = []
-        strandTemp = []
+        if siteLength is None:
+            siteLength = self.n_mer
         
-        #Testing out git
+        regElementList = []
+        rSitesTemp = [] #variables starting with 'r' are temporary variables for the AnnotRegEle object corresponding to a Promoter (or other r'egulatory element)
+        rAffinitiesTemp = []
+        rStartPosTemp = []
+        rStrandTemp = []
+        
+        unpClusterList = []
+        cSitesTemp = [] #variables starting with 'c' are temporary variables for the AnnotRegEle object corresponding to a Cluster
+        cAffinitiesTemp = []
+        cStartPosTemp = []
+        cStrandTemp = []
+        
         for i in tqdm(range(len(regHitsDF.index)-1)): #iterate over self.hits
-            #gapDist = self.hits.loc[i+1].Start - self.hits.loc[i].End -1   
-         
-            #if the distance to the next site is less than the maximum gap distance input, but greater than the minimum gap distance (biggest overlap allowed)
-            #if #((gapDist <= maxGap) and (gapDist >= minGap)) -- note, it will make some sense to incorporate this at some point.
-            if (((regHitsDF.loc[i+1].Start - regHitsDF.loc[i].End -1) <= maxGap) and (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID)): #also restrict cluster hits to same promoter
-                sitesTemp.append(regHitsDF.loc[i].Sequence)
-                affinitiesTemp.append(regHitsDF.loc[i].Score)
-                startPosTemp.append(regHitsDF.loc[i].Start)
-                strandTemp.append(regHitsDF.loc[i].Strand)
+            samePromoter= (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID)
             
-            elif (sitesTemp) : 
-                #else if sitesTemp is not empty, or EPDnew_ID is not ==, and therefore we're on the last member of a cluster:
-                sitesTemp.append(regHitsDF.loc[i].Sequence) #append the last member of the cluster to the temporary variables
-                affinitiesTemp.append(regHitsDF.loc[i].Score)
-                startPosTemp.append(regHitsDF.loc[i].Start)
-                strandTemp.append(regHitsDF.loc[i].Strand)
-                EPDnew_ID = regHitsDF.loc[i].EPDnew_ID #also append the cluster's promoter region
+            #if the 'i+1' site is from the same promoter, then add the 'i' site to the promoter object
+            if (samePromoter):
+                rSitesTemp.append(regHitsDF.loc[i].Sequence)
+                rAffinitiesTemp.append(regHitsDF.loc[i].Score)
+                rStartPosTemp.append(regHitsDF.loc[i].Start)
+                rStrandTemp.append(regHitsDF.loc[i].Strand)  
                 
-                #Transform temporary variables into a Clusters object and store it as an element of the list unpClusterList
-                unpClusterList.append(AnnotatedClusters(sitesTemp, affinitiesTemp, startPosTemp, strandTemp, 9, EPDnew_ID)) #Note: change hard-encoded 9 to self.n_mer
+            elif (rSitesTemp):  #if we're on the last site of the promoter
+                rSitesTemp.append(regHitsDF.loc[i].Sequence)
+                rAffinitiesTemp.append(regHitsDF.loc[i].Score)
+                rStartPosTemp.append(regHitsDF.loc[i].Start)
+                rStrandTemp.append(regHitsDF.loc[i].Strand)
+                rEPDnew_ID = regHitsDF.loc[i].EPDnew_ID #append the promoter's ID
                 
-                sitesTemp = [] #Clear temporary variables
-                affinitiesTemp = []
-                startPosTemp = []
-                strandTemp = []
+                #Transform temporary variables into a AnnotRegEle object and store it as an element of the list regElementList
+                regElementList.append(AnnotRegEle(rSitesTemp, rAffinitiesTemp, rStartPosTemp, rStrandTemp, siteLength, rEPDnew_ID))
+                
+                rSitesTemp = [] #Clear temporary variables
+                rAffinitiesTemp = []
+                rStartPosTemp = []
+                rStrandTemp = []                
+
+            #if the distance to the next site is less than the maximum gap distance input, and the i+1 site is also from the same promoter
+            if (((regHitsDF.loc[i+1].Start - regHitsDF.loc[i].End -1) <= maxGap) and (samePromoter)):
+                cSitesTemp.append(regHitsDF.loc[i].Sequence)
+                cAffinitiesTemp.append(regHitsDF.loc[i].Score)
+                cStartPosTemp.append(regHitsDF.loc[i].Start)
+                cStrandTemp.append(regHitsDF.loc[i].Strand)
+            
+            elif (cSitesTemp) : #if we're on the last site of the cluster
+                cSitesTemp.append(regHitsDF.loc[i].Sequence)
+                cAffinitiesTemp.append(regHitsDF.loc[i].Score)
+                cStartPosTemp.append(regHitsDF.loc[i].Start)
+                cStrandTemp.append(regHitsDF.loc[i].Strand)
+                cEPDnew_ID = regHitsDF.loc[i].EPDnew_ID #also append the cluster's promoter region
+                
+                #Transform temporary variables into a AnnotRegEle object and store it as an element of the list unpClusterList
+                unpClusterList.append(AnnotRegEle(cSitesTemp, cAffinitiesTemp, cStartPosTemp, cStrandTemp, siteLength, cEPDnew_ID))
+                
+                cSitesTemp = [] #Clear temporary variables
+                cAffinitiesTemp = []
+                cStartPosTemp = []
+                cStrandTemp = []
         
         if (maxGap <= -1):
             self.ovlpClusterList = unpClusterList
@@ -593,7 +620,7 @@ class PWMScan(object):
             self.unpClusterList = unpClusterList
     
 @dataclass    
-class Clusters:
+class RegEle: #Regulatory Element
     bindingSiteSeqs: list
     siteAffinities: list
     startPos: list
@@ -607,7 +634,7 @@ class Clusters:
         self.spacing = [(self.startPos[y+1] - self.endPos[y] -1) for y in range(len(self.startPos)-1)]
 
 @dataclass
-class AnnotatedClusters(Clusters): # AnnotatedClusters is a child class of Clusters, with the additional attribute geneID
+class AnnotRegEle(RegEle): # AnnotRegEle is a child class of RegEle, with the additional attribute geneID
     geneID: str = 'UNKNOWN' #This default value should actually never get triggered
 
 
