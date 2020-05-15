@@ -33,6 +33,8 @@ class PWMScan(object):
             
             self.unpClusterList: unprocessed cluster list, containing ALL clusters
             with potential sites, even if binding motif size is 9 and overlap is (-8)
+            
+            self.regElementList: list of RegulatoryElement objects
         """
         self.sequence = None
         self.annot = None
@@ -40,6 +42,7 @@ class PWMScan(object):
         self.reg_hits = None
         self.PWM_Kdref = None
         self.n_mer = None
+        self.regElementList = None
         self.unpClusterList = None
         self.ovlpClusterList = None
         self.regElementDict = None
@@ -244,7 +247,7 @@ class PWMScan(object):
                 
                 seq = ''.join(lines[iStart:i]) #pull out the promoter sequence corresponding to TSS_EPDnew_ID
                 
-                self.regElementDict[TSS_EPDnew_ID] = seq
+                self.regElementDict[TSS_EPDnew_ID] = seq #Store the EPDnewID: promoter sequence key:value pair in a dictionary for later
                 
                 seq = self.__str_to_np_seq(seq)
                 
@@ -549,7 +552,7 @@ class PWMScan(object):
         maxGap: the maximum gap distance between binding sites that is allowed, for
         binding sites in the same cluster (before truncating a cluster). 
         """
-        
+        regElementList = []
         unpClusterList = []
         sitesTemp = [] #Declare temporary variables used to build clusters and transfer to unpClusterList 
         affinitiesTemp = []
