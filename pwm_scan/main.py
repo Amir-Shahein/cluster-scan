@@ -42,8 +42,8 @@ class PWMScan(object):
         self.n_mer = None
         self.unpClusterList = None
         self.ovlpClusterList = None
-        
-        
+        self.regElementDict = None
+                
     def load_Kd_Kdref_pwm(self, filename, n_mer):
         """
         Args: 
@@ -233,6 +233,8 @@ class PWMScan(object):
                             columns=colnames)
         #######################
         
+        self.regElementDict = {}
+        
         TSS_EPDnew_ID = lines.pop(0).split()[1] #remove the first line from lines, and access its EPDnew ID
         iStart = 0
         
@@ -242,6 +244,8 @@ class PWMScan(object):
                 
                 seq = ''.join(lines[iStart:i]) #pull out the promoter sequence corresponding to TSS_EPDnew_ID
                 
+                self.regElementDict[TSS_EPDnew_ID] = seq
+                
                 seq = self.__str_to_np_seq(seq)
                 
                 self.__pwm_scan_multifasta(self.PWM_Kdref, PWM_rc, seq, threshold, n_mer, cols, TSS_EPDnew_ID, length5Prime)
@@ -249,9 +253,7 @@ class PWMScan(object):
                 TSS_EPDnew_ID = lines[i].split()[1]
                 
                 iStart = i+1
-                
-                
-
+                              
     def __str_to_np_seq(self, str_seq):
         """
         A custom DNA base coding system with numbers.
@@ -407,9 +409,7 @@ class PWMScan(object):
                                        i -length5Prime             , # Distance of binding site's last base relative to TSS
                                        i -length5Prime + n_mer -1  , # End
                                        'N'                         , # Non-coding Strand
-                                       TSS_EPDnew_ID               ] # EPDnew ID
-
-        
+                                       TSS_EPDnew_ID               ] # EPDnew ID      
         
     def __find_adjacent_genes(self, distance_range):
         
@@ -491,7 +491,6 @@ class PWMScan(object):
                 self.hits.loc[i, 'Name'] = ' ; '.join(map(str, gene_name))
                 self.hits.loc[i, 'Distance']  = ' ; '.join(map(str, distance))
 
-
     def generate_clusters(self, maxGap):
         
         """
@@ -543,6 +542,10 @@ class PWMScan(object):
         This is the alternative method that compiles single binding site hits into 
         clusters when you're using extracted regulatory sequences passed as input
         through a file with multiple FASTA seqs.
+        
+        regHitsDF: dataframe corresponding to regHits, with single binding site hits annotated
+        with the EPDnew ID of the associated TSS 
+        
         maxGap: the maximum gap distance between binding sites that is allowed, for
         binding sites in the same cluster (before truncating a cluster). 
         """
