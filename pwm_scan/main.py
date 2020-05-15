@@ -240,9 +240,9 @@ class PWMScan(object):
         
         TSS_EPDnew_ID = lines.pop(0).split()[1] #remove the first line from lines, and access its EPDnew ID
         iStart = 0
-        
+
         for i in tqdm(range(len(lines))): #iterate through the lines in the file
-            
+        
             if lines[i].startswith('>'):
                 
                 seq = ''.join(lines[iStart:i]) #pull out the promoter sequence corresponding to TSS_EPDnew_ID
@@ -256,6 +256,14 @@ class PWMScan(object):
                 TSS_EPDnew_ID = lines[i].split()[1]
                 
                 iStart = i+1
+
+        seq = ''.join(lines[iStart:]) #pull out the final promoter sequence corresponding to TSS_EPDnew_ID (note: this could have problems if only want to read part of a file)
+        
+        self.regElementDict[TSS_EPDnew_ID] = seq #Store the EPDnewID: promoter sequence key:value pair in a dictionary for later
+        
+        seq = self.__str_to_np_seq(seq)
+        
+        self.__pwm_scan_multifasta(self.PWM_Kdref, PWM_rc, seq, threshold, n_mer, cols, TSS_EPDnew_ID, length5Prime)
                               
     def __str_to_np_seq(self, str_seq):
         """
@@ -554,6 +562,9 @@ class PWMScan(object):
         """
         if siteLength is None:
             siteLength = self.n_mer
+        if siteLength == None:
+            print('ERROR: siteLength is Nonetype, either load the PWM or input a value directly')
+            return
         
         regElementList = []
         rSitesTemp = [] #variables starting with 'r' are temporary variables for the AnnotRegEle object corresponding to a Promoter (or other r'egulatory element)
@@ -568,7 +579,8 @@ class PWMScan(object):
         cStrandTemp = []
         
         for i in tqdm(range(len(regHitsDF.index)-1)): #iterate over self.hits
-            samePromoter= (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID)
+            
+            samePromoter = (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID)
             
             #if the 'i+1' site is from the same promoter, then add the 'i' site to the promoter object
             if (samePromoter):
@@ -577,22 +589,21 @@ class PWMScan(object):
                 rStartPosTemp.append(regHitsDF.loc[i].Start)
                 rStrandTemp.append(regHitsDF.loc[i].Strand)  
                 
-            elif (rSitesTemp):  #if we're on the last site of the promoter
+            else:  #if we're on the last site for the promoter (incl. if it's the only site in a promoter)
                 rSitesTemp.append(regHitsDF.loc[i].Sequence)
                 rAffinitiesTemp.append(regHitsDF.loc[i].Score)
                 rStartPosTemp.append(regHitsDF.loc[i].Start)
                 rStrandTemp.append(regHitsDF.loc[i].Strand)
                 rEPDnew_ID = regHitsDF.loc[i].EPDnew_ID #append the promoter's ID
-                
+
                 #Transform temporary variables into a AnnotRegEle object and store it as an element of the list regElementList
                 regElementList.append(AnnotRegEle(rSitesTemp, rAffinitiesTemp, rStartPosTemp, rStrandTemp, siteLength, rEPDnew_ID))
-                
                 rSitesTemp = [] #Clear temporary variables
                 rAffinitiesTemp = []
                 rStartPosTemp = []
                 rStrandTemp = []                
 
-            #if the distance to the next site is less than the maximum gap distance input, and the i+1 site is also from the same promoter
+            #if the distance to the next site is less than the maximum gap distance allowed, and the i+1 site is also from the same promoter
             if (((regHitsDF.loc[i+1].Start - regHitsDF.loc[i].End -1) <= maxGap) and (samePromoter)):
                 cSitesTemp.append(regHitsDF.loc[i].Sequence)
                 cAffinitiesTemp.append(regHitsDF.loc[i].Score)
@@ -614,13 +625,33 @@ class PWMScan(object):
                 cStartPosTemp = []
                 cStrandTemp = []
         
+        #Need to deal with the last iteration
+        i=i+1
+        
+        rSitesTemp.append(regHitsDF.loc[i].Sequence)
+        rAffinitiesTemp.append(regHitsDF.loc[i].Score)
+        rStartPosTemp.append(regHitsDF.loc[i].Start)
+        rStrandTemp.append(regHitsDF.loc[i].Strand)
+        rEPDnew_ID = regHitsDF.loc[i].EPDnew_ID #append the promoter's ID
+        regElementList.append(AnnotRegEle(rSitesTemp, rAffinitiesTemp, rStartPosTemp, rStrandTemp, siteLength, rEPDnew_ID))
+        
+        if (cSitesTemp): #if cSitesTemp is not empty, that means the final site is part of the cluster (otherwise it would have truncated and cleared already). If empty, then no cluster.
+            cSitesTemp.append(regHitsDF.loc[i].Sequence)
+            cAffinitiesTemp.append(regHitsDF.loc[i].Score)
+            cStartPosTemp.append(regHitsDF.loc[i].Start)
+            cStrandTemp.append(regHitsDF.loc[i].Strand)
+            cEPDnew_ID = regHitsDF.loc[i].EPDnew_ID
+            unpClusterList.append(AnnotRegEle(cSitesTemp, cAffinitiesTemp, cStartPosTemp, cStrandTemp, siteLength, cEPDnew_ID))    
+                
+        self.regElementList = regElementList
+        
         if (maxGap <= -1):
             self.ovlpClusterList = unpClusterList
         else:
             self.unpClusterList = unpClusterList
     
 @dataclass    
-class RegEle: #Regulatory Element
+class RegEle: #Regulatory Elements
     bindingSiteSeqs: list
     siteAffinities: list
     startPos: list

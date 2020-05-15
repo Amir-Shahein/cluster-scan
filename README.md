@@ -59,7 +59,7 @@ scan.generate_overlapping_clusters()
 
 #alternatively, skip load_sequence, and use this for multifasta/regulatory seq
 scan.launch_scan_multifasta('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/hg38_EPDnewSeqExtract.fa')
-scan.generate_clusters_multifasta(scan.reg_hits, 35)
+scan.generate_reg_elements_clusters(scan.reg_hits, 35)
 ----------
 
 To view the list of Clusters objects as a dataframe: pd.DataFrame([vars(s) for s in scan.ovlpClusterList])
