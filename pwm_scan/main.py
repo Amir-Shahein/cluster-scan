@@ -562,7 +562,7 @@ class PWMScan(object):
         """
         if siteLength is None:
             siteLength = self.n_mer
-        if siteLength == None:
+        if siteLength is None:
             print('ERROR: siteLength is Nonetype, either load the PWM or input a value directly')
             return
         

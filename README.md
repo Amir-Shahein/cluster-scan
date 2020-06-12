@@ -1,3 +1,5 @@
+# This project uses some material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
+
 # https://en.wikipedia.org/wiki/Position_weight_matrix#Creation for good information on PWM calculations
 
 # PWM Scan
