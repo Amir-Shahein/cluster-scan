@@ -113,3 +113,21 @@ confirmed). However, they do not provide whether the sequence is the + or - stra
 in these DataFrames, I can include strand information as C (coding) and N (noncoding), and in the future, if I want to 
 label it as being the + or - strand objectively, then I would need to match the EPDnew ID against FPS file
 (https://epd.epfl.ch/get_promoters.php) and retrieve the + or - from there. 
+
+
+In order to build the refined annotated list of promoters, I used this paper: https://www.frontiersin.org/articles/10.3389/fnbeh.2017.00035/full,
+who did an analysis of EGR-1 (Zif268) ChIP-seq peaks (from ENCODE), and identified genes nearby: 
+# Indeed, as the ENCODE project included EGR1 as part of the tier 1 chromatin immunoprecipitation followed by deep sequencing 
+# (ChIP-seq), a wealth of information regarding EGR1 DNA binding characteristics and target genes has been made available 
+# (ENCODE Project Consortium, 2012). In particular, we are thus able to analyze and compare the binding pattern of 161 
+# transcription factors across 91 cell types and a total of 4,380,444 genomic regions, among which 44,985 correspond to 
+# an EGR1 binding event. Out of the 15,872 genes thus annotated, 8552 (53.9%) contain at least one EGR1 binding region 
+# (peak) within 3 kb of their transcription start site (TSS), which indicates that across several human cell types, EGR1 
+# can bind a very large number of genes and thus potentially regulate a very large gene expression profile (see full 
+# annotated list in Supplementary Table S1). As previously reported, EGR1 binds in close vicinity to the TSS (Project 
+# Kubosaki et al., 2009; ENCODE Project Consortium, 2012), but even though 41.6% of all EGR1 peaks are located within 
+# the promoter region, 26.4% are located within intronic regions.
+See csv file: EGR1_ENCODE_chip_peaks_gene_annotations.csv
+
+Note: file convert_EPDnewID_ENSEMBLgeneID.txt contains conversion from EPDnewID to ENSEMBL, which is provided in the excel file
+
