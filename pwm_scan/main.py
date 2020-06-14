@@ -272,7 +272,7 @@ class PWMScan(object):
     
     def create_ID_conversion_dict(self, filename):
         """
-        
+        Load in the conversion file into a dict, with key = ENSEMBL ID, value = EPDnewID
 
         Parameters
         ----------
@@ -288,6 +288,17 @@ class PWMScan(object):
         self.EPDnewIDconversions
 
         """
+        
+        self.EPDnewIDconversions = {}
+        
+        with open(filename) as fh:
+            
+            for line in fh:
+                
+                EPDnewID, ENSEMBL = line.strip().split()
+                
+                self.EPDnewIDconversions[ENSEMBL.strip()] = EPDnewID.strip()
+        
     
     def restrict_hits_annot(self, dfOfHits, annotFilename):
         """
