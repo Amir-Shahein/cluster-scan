@@ -346,9 +346,6 @@ class PWMScan(object):
                 
                 restricted_dfOfHits = restricted_dfOfHits.append(dfOfHits.loc[i])
                 
-                #CREATE A SCORE COLUMN IN THIS NEW DF, AND 
-                
-                
             
     
     
