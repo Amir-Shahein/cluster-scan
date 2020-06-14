@@ -1,0 +1,1 @@
+#    def restrict_hits_annot(self, dfOfHits, annotFilename):Upgrade method to be able to accept a threshold for the ChIP score, in order to accept a promoter!# Write a method to process weird overlaps into sensible ones (like (-6) (-6) into a single (-3) ) 

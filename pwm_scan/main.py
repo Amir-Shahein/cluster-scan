@@ -25,6 +25,9 @@ class PWMScan(object):
             self.reg_hits: the hits result of scanning regulatory sequence
                 pandas DataFrame
                 
+            self.restricted_reg_hits: reg_hits restsricted to an annotation (
+            designed for annotation: ChIP-seq hit <=1kB from TSS --> i.e. bound promoter)
+                
             self.PWM_Kdref:  PWM in the format of Kd/Kdref, so that to obtain the Kd 
                 of a given sequence, you can multiply all the Kd/Kdref factors based on 
                 positions in the PWM, and then multiply this by the Kd of the consensus
@@ -40,8 +43,10 @@ class PWMScan(object):
         self.annot = None
         self.hits = None
         self.reg_hits = None
+        self.restricted_reg_hits = None
         self.PWM_Kdref = None
         self.n_mer = None
+        self.EPDnewIDconversions = None
         self.regElementList = None
         self.unpClusterList = None
         self.ovlpClusterList = None
@@ -264,7 +269,49 @@ class PWMScan(object):
         seq = self.__str_to_np_seq(seq)
         
         self.__pwm_scan_multifasta(self.PWM_Kdref, PWM_rc, seq, threshold, n_mer, cols, TSS_EPDnew_ID, length5Prime)
-                              
+    
+    def create_ID_conversion_dict(self, filename):
+        """
+        
+
+        Parameters
+        ----------
+        filename : txt
+            file from EPDnew database with EPDnewID - ENESMBL equivalence.
+
+        Returns
+        -------
+        None.
+        
+        Modifies
+        --------
+        self.EPDnewIDconversions
+
+        """
+    
+    def restrict_hits_annot(self, dfOfHits, annotFilename):
+        """
+        Takes the dataframe (reg_hits) with EPDnewIDs and creates a new dataframe that
+        is restricted to promoters with ChIP-seq signal 1kB from the TSS. Based on
+        the ENCODE dataset, currently using data from
+        https://www.frontiersin.org/articles/10.3389/fnbeh.2017.00035/full
+
+        Parameters
+        ----------
+        dfOfHits : dataframe
+            input dataframe with EPDnewID-labeled TFBSs or clusters as entries (typically reg_hits).
+        annotFilename : csv file
+            File containing annotations e.g. Promoter(<=1kb), ENSEMBL gene ID, ChIP score.
+
+        Returns
+        -------
+        None.
+        
+        Modifies
+        -------
+        self.restricted_reg_hits dataframe, by passing in valid entries
+        """
+    
     def __str_to_np_seq(self, str_seq):
         """
         A custom DNA base coding system with numbers.
