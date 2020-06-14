@@ -44,6 +44,7 @@ class PWMScan(object):
         self.hits = None
         self.reg_hits = None
         self.restricted_reg_hits = None
+        self.EPDnewIDchipValuesDict = None
         self.PWM_Kdref = None
         self.n_mer = None
         self.EPDnewIDconversions = None
@@ -298,8 +299,7 @@ class PWMScan(object):
                 EPDnewID, ENSEMBL = line.strip().split()
                 
                 self.EPDnewIDconversions[ENSEMBL.strip()] = EPDnewID.strip()
-        
-    
+         
     def restrict_hits_annot(self, dfOfHits, annotFilename):
         """
         Takes the dataframe (reg_hits) with EPDnewIDs and creates a new dataframe that
@@ -315,13 +315,42 @@ class PWMScan(object):
             File containing annotations e.g. Promoter(<=1kb), ENSEMBL gene ID, ChIP score.
 
         Returns
-        -------
-        None.
+        ----------
+        restricted_dfOfHits
         
-        Modifies
-        -------
-        self.restricted_reg_hits dataframe, by passing in valid entries
         """
+        
+        restricted_dfOfHits = pd.DataFrame(columns=dfOfHits.columns)
+        
+        if self.EPDnewIDconversions == None:
+            print("load the ID conversion file")
+            return
+        
+        self.EPDnewIDchipValuesDict = {}
+        
+        df = pd.read_csv('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/EGR1_ENCODE_chip_peaks_gene_annotations.csv', header=1)
+        
+        df = df[df['annotation']=="Promoter (<=1kb)"]
+        
+        df = df[df['EnsemblID'].notnull()]
+                
+        for i in range(len(df)):
+            
+            if df.loc[i]["EnsemblID"] in self.EPDnewIDconversions:
+                
+                self.EPDnewIDchipValuesDict[self.EPDnewIDconversions[df.loc[i]["EnsemblID"]]] = df.loc[i]["Score"]
+                
+        for i in dfOfHits.index:
+            
+            if dfOfHits.loc[i]["EPDnew_ID"] in self.EPDnewIDchipValuesDict:
+                
+                restricted_dfOfHits = restricted_dfOfHits.append(dfOfHits.loc[i])
+                
+                #CREATE A SCORE COLUMN IN THIS NEW DF, AND 
+                
+                
+            
+    
     
     def __str_to_np_seq(self, str_seq):
         """
