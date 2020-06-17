@@ -316,11 +316,11 @@ class PWMScan(object):
 
         Returns
         ----------
-        restricted_dfOfHits
+        restricted_reg_hits
         
         """
         
-        restricted_dfOfHits = pd.DataFrame(columns=dfOfHits.columns)
+        self.restricted_reg_hits = pd.DataFrame(columns=dfOfHits.columns)
         
         if self.EPDnewIDconversions == None:
             print("load the ID conversion file")
@@ -330,21 +330,21 @@ class PWMScan(object):
         
         df = pd.read_csv('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/EGR1_ENCODE_chip_peaks_gene_annotations.csv', header=1)
         
-        df = df[df['annotation']=="Promoter (<=1kb)"]
+        df = df[df['annotation']=="Promoter (<=1kb)"] #Restrict the df to promoters with a ChIP peak 1kb from the TSS
         
-        df = df[df['EnsemblID'].notnull()]
-                
-        for i in range(len(df)):
+        df = df[df['EnsemblID'].notnull()] #Some of the EnsemblIDs were not there, so skip them for now
+                        
+        for i in tqdm(df.index): #Iterate through refined annotation df
             
-            if df.loc[i]["EnsemblID"] in self.EPDnewIDconversions:
+            if df.loc[i]["EnsemblID"] in self.EPDnewIDconversions: #If promoter with ChIP-peak is in EPDnew database
                 
-                self.EPDnewIDchipValuesDict[self.EPDnewIDconversions[df.loc[i]["EnsemblID"]]] = df.loc[i]["Score"]
+                self.EPDnewIDchipValuesDict[self.EPDnewIDconversions[df.loc[i]["EnsemblID"]]] = df.loc[i]["Score"] #Save Key-EPDnewID, Value-ChIP Peak
                 
-        for i in dfOfHits.index:
-            
+        for i in tqdm(dfOfHits.index):
+                 
             if dfOfHits.loc[i]["EPDnew_ID"] in self.EPDnewIDchipValuesDict:
                 
-                restricted_dfOfHits = restricted_dfOfHits.append(dfOfHits.loc[i])
+                self.restricted_reg_hits = self.restricted_reg_hits.append(dfOfHits.loc[i])
                 
             
     

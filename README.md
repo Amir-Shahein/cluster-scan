@@ -45,6 +45,12 @@ scan.launch_scan(filename='output.csv', threshold=12)
                                                       ## the relative likelihood)
                                                       ## Note --  I removed a period after the 10 in argument threshold
 ```
+------- FOR THE Restrict-to-annot stuff:
+
+#Load the conversion dict
+scan.create_ID_conversion_dict("/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/convert_EPDnewID_ENSEMBLgeneID.txt")
+
+
 
 -----------
 Note that the Zif268 mouse and HUMAN PWM is similar. I believe this applies across vertebrates, so it makes sense to scan it against a human genome.
@@ -62,6 +68,11 @@ scan.generate_overlapping_clusters()
 #alternatively, skip load_sequence, and use this for multifasta/regulatory seq
 scan.launch_scan_multifasta('/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/hg38_EPDnewSeqExtract.fa')
 scan.generate_reg_elements_clusters(scan.reg_hits, 35)
+
+
+#Restrict reg_hits to promoters with ChIP peaks
+scan.restrict_hits_annot(reg_hits, "/Users/transcend/Python_Stuff/python_scripts/cluster_scan/input_data/EGR1_ENCODE_chip_peaks_gene_annotations.csv")
+
 ----------
 
 To view the list of Clusters objects as a dataframe: pd.DataFrame([vars(s) for s in scan.ovlpClusterList])
