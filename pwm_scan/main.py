@@ -7,6 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 from dataclasses import dataclass, field
 from itertools import dropwhile
+import matplotlib.pyplot as plt 
 
 class PWMScan(object):
     def __init__(self):
@@ -52,6 +53,7 @@ class PWMScan(object):
         self.unpClusterList = None
         self.ovlpClusterList = None
         self.regElementDict = None
+        self.flat_df_count = None
                 
     def load_Kd_Kdref_pwm(self, filename, n_mer):
         """
@@ -346,9 +348,6 @@ class PWMScan(object):
                 
                 self.restricted_reg_hits = self.restricted_reg_hits.append(dfOfHits.loc[i])
                 
-            
-    
-    
     def __str_to_np_seq(self, str_seq):
         """
         A custom DNA base coding system with numbers.
@@ -421,7 +420,33 @@ class PWMScan(object):
             GC_count = np.sum(seq == 1) + np.sum(seq == 2)
             GC_content = GC_count / float(len(seq))
             return GC_content
+        
+    def process_df(self, df, threshold=None, resetIndex=False):
+        """
+        This method just groups some of the dataframe processing code that one might
+        want to use during a scanning process.
+        
+        Operations: 1) Reset index 
+                    2) Restrict regulatory hits to a threshold
+        
+        Attributes:
+        reset: True or False
+        threshold: the Kd/Kdref threshold to limit the dataframe to 
+        
+        Returns
+        -------
+        None.
 
+        """
+        
+        if resetIndex:
+            df = df.reset_index()
+            return df
+        
+        if threshold is not None:
+            
+        
+    
     def __pwm_scan(self, PWM, seq, thres):
         """
         The core function that performs the PWM scan
@@ -643,6 +668,8 @@ class PWMScan(object):
         
         maxGap: the maximum gap distance between binding sites that is allowed, for
         binding sites in the same cluster (before truncating a cluster). 
+        
+        Note: Might need to reset index of the regHitsDF that's being fed in here'
         """
         if siteLength is None:
             siteLength = self.n_mer
@@ -733,6 +760,47 @@ class PWMScan(object):
             self.ovlpClusterList = unpClusterList
         else:
             self.unpClusterList = unpClusterList
+            
+    def plot_site_spacing(self, clusterDfList):
+        
+        """
+        This method plots spacing between two binding sites on the X-axis and 
+        count on the Y-axis.
+        
+        clusterDfList: the input lits of cluster objects
+        """
+        
+        
+        df = pd.DataFrame([vars(s) for s in clusterDfList]) #Generate a dataframe from a list of Class objects
+        
+        #Make a series of lists into a one-dimensional list
+        flat_df = []
+        for sublist in df['spacing']:
+            for item in sublist:
+                flat_df.append(item)     
+
+        #Turn the flat list into a flat DF
+        flat_df = pd.DataFrame(flat_df)
+        
+        #Count the occurences of values in a DataFrame
+        self.flat_df_count = pd.DataFrame(flat_df[0].value_counts())
+        
+        #Sort the DF by value
+        order = np.arange(-8,36).tolist() #this needs to be changed, to account for loss of overlaps (-8 first, just add lists) 
+        
+        for i in order:
+            
+            if i not in self.flat_df_count.index: #If a spacing is not present, set its count to zero
+                
+                self.flat_df_count.loc[i] = 0
+        
+        self.flat_df_count = self.flat_df_count.loc[order]
+        
+        #Generating a bar plot from a flat dataframe
+        fig, ax = plt.subplots()
+        self.flat_df_count[0].plot(ax=ax, kind='bar')
+
+        
     
 @dataclass    
 class RegEle: #Regulatory Elements
