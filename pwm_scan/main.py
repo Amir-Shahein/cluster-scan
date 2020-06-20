@@ -421,7 +421,7 @@ class PWMScan(object):
             GC_content = GC_count / float(len(seq))
             return GC_content
         
-    def process_df(self, df, threshold=None, resetIndex=False):
+    def misc_process_df(self, df, threshold=None, resetIndex=False):
         """
         This method just groups some of the dataframe processing code that one might
         want to use during a scanning process.
@@ -431,22 +431,21 @@ class PWMScan(object):
         
         Attributes:
         reset: True or False
-        threshold: the Kd/Kdref threshold to limit the dataframe to 
+        threshold: Float, the Kd/Kdref threshold (preserve Scores lower than) to limit the dataframe to
         
         Returns
         -------
         None.
 
         """
-        
-        if resetIndex:
-            df = df.reset_index()
-            return df
-        
         if threshold is not None:
+            df = df[df.Score<threshold]   
             
+        if resetIndex:
+            df = df.reset_index(drop=True)
         
-    
+        return df
+        
     def __pwm_scan(self, PWM, seq, thres):
         """
         The core function that performs the PWM scan
@@ -760,7 +759,7 @@ class PWMScan(object):
             self.ovlpClusterList = unpClusterList
         else:
             self.unpClusterList = unpClusterList
-            
+        
     def plot_site_spacing(self, clusterDfList):
         
         """
@@ -769,10 +768,9 @@ class PWMScan(object):
         
         clusterDfList: the input lits of cluster objects
         """
-        
-        
+
         df = pd.DataFrame([vars(s) for s in clusterDfList]) #Generate a dataframe from a list of Class objects
-        
+
         #Make a series of lists into a one-dimensional list
         flat_df = []
         for sublist in df['spacing']:

@@ -78,6 +78,12 @@ scan.restrict_hits_annot(reg_hits, "/Users/transcend/Python_Stuff/python_scripts
 To view the list of Clusters objects as a dataframe: pd.DataFrame([vars(s) for s in scan.ovlpClusterList])
 
 ----------
+>Restrict reg_hits to the ChIP peaks
+>restrict the df to a lower threshold
+>use restricted_reg_hits to generate clusters/regulatory elements
+>unpack the cluster list into a df
+>feed this new df into the plot method
+----------
 
 
 FASTA and GTF are very common formats for genome sequence and genome annotations, respectively.
