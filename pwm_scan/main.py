@@ -34,11 +34,21 @@ class PWMScan(object):
                 positions in the PWM, and then multiply this by the Kd of the consensus
             
             self.n_mer: number of bases in a motif
+                int
             
             self.unpClusterList: unprocessed cluster list, containing ALL clusters
             with potential sites, even if binding motif size is 9 and overlap is (-8)
+                list of objects
             
             self.regElementList: list of RegulatoryElement objects
+                list of objects
+            
+            self.flat_df_count: dataframe corresponding to spacings between 
+            binding sites and the number of occurrences of these spacings in the
+            input dataframe
+                
+            self.non_clus_reg_hits: dataframe of individual binding sites, i.e.
+            binding sites that are not part of a homotypic cluster
         """
         self.sequence = None
         self.annot = None
@@ -54,6 +64,7 @@ class PWMScan(object):
         self.ovlpClusterList = None
         self.regElementDict = None
         self.flat_df_count = None
+        self.non_clus_reg_hits = None
                 
     def load_Kd_Kdref_pwm(self, filename, n_mer):
         """
@@ -658,9 +669,9 @@ class PWMScan(object):
     def generate_reg_elements_clusters(self, regHitsDF, maxGap, siteLength=None):
         
         """
-        This is the alternative method that compiles single binding site hits into 
+        This method compiles single binding site hits dataframe into 
         clusters when you're using extracted regulatory sequences passed as input
-        through a file with multiple FASTA seqs.
+        through a file with multiple FASTA seqs (typical case is promoters from EPDnew db).
         
         regHitsDF: dataframe corresponding to regHits, with single binding site hits annotated
         with the EPDnew ID of the associated TSS 
@@ -688,9 +699,9 @@ class PWMScan(object):
         cStartPosTemp = []
         cStrandTemp = []
         
-        for i in tqdm(range(len(regHitsDF.index)-1)): #iterate over self.hits
+        for i in tqdm(range(len(regHitsDF.index)-1)): #iterate over the dataframe of hits
             
-            samePromoter = (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID)
+            samePromoter = (regHitsDF.loc[i+1].EPDnew_ID == regHitsDF.loc[i].EPDnew_ID) #determine if the next hit is in the same promoter
             
             #if the 'i+1' site is from the same promoter, then add the 'i' site to the promoter object
             if (samePromoter):
@@ -766,7 +777,7 @@ class PWMScan(object):
         This method plots spacing between two binding sites on the X-axis and 
         count on the Y-axis.
         
-        clusterDfList: the input lits of cluster objects
+        clusterDfList: the input list of cluster objects
         """
 
         df = pd.DataFrame([vars(s) for s in clusterDfList]) #Generate a dataframe from a list of Class objects
