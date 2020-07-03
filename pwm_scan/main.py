@@ -687,6 +687,8 @@ class PWMScan(object):
             print('ERROR: siteLength is Nonetype, either load the PWM or input a value directly')
             return
         
+        self.non_clus_reg_hits = pd.DataFrame(columns=regHitsDF.columns)
+        
         regElementList = []
         rSitesTemp = [] #variables starting with 'r' are temporary variables for the AnnotRegEle object corresponding to a Promoter (or other r'egulatory element)
         rAffinitiesTemp = []
@@ -745,11 +747,14 @@ class PWMScan(object):
                 cAffinitiesTemp = []
                 cStartPosTemp = []
                 cStrandTemp = []
+                
+            else: #if not from same promoter OR not within maxGap, and not the last site of the cluster, then it's a single binding site
+                self.non_clus_reg_hits = self.non_clus_reg_hits.append(regHitsDF.loc[i])
         
         #Need to deal with the last iteration
         i=i+1
         
-        rSitesTemp.append(regHitsDF.loc[i].Sequence)
+        rSitesTemp.append(regHitsDF.loc[i].Sequence)  #this makes sense because already checked this index above, and cleared if not the same promoter
         rAffinitiesTemp.append(regHitsDF.loc[i].Score)
         rStartPosTemp.append(regHitsDF.loc[i].Start)
         rStrandTemp.append(regHitsDF.loc[i].Strand)
@@ -762,7 +767,10 @@ class PWMScan(object):
             cStartPosTemp.append(regHitsDF.loc[i].Start)
             cStrandTemp.append(regHitsDF.loc[i].Strand)
             cEPDnew_ID = regHitsDF.loc[i].EPDnew_ID
-            unpClusterList.append(AnnotRegEle(cSitesTemp, cAffinitiesTemp, cStartPosTemp, cStrandTemp, siteLength, cEPDnew_ID))    
+            unpClusterList.append(AnnotRegEle(cSitesTemp, cAffinitiesTemp, cStartPosTemp, cStrandTemp, siteLength, cEPDnew_ID))
+        
+        else:  #if cSitesTemp is empty it's because the last site is not part of the cluster
+            self.non_clus_reg_hits = self.non_clus_reg_hits.append(regHitsDF.loc[i])
                 
         self.regElementList = regElementList
         
