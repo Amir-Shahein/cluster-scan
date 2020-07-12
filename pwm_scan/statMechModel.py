@@ -47,7 +47,7 @@ import numpy as np
 
 
 
-def general_statmech_model(regObj, conc, concO=0.6):
+def general_statmech_model(regObj, conc, consensusKd=1, concO=0.6):
     
     """
     This method takes as input a regulatory element (module) object of binding sites 
@@ -83,22 +83,22 @@ def general_statmech_model(regObj, conc, concO=0.6):
         
         if i == len(regObj.spacing): # account for the last site (note: we'd only arrive here if it's not part of an ovlp cluster)
             
-            delE = math.log(regObj.Score[i]/concO)
+            delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
             
             relMult = (conc/concO)*math.exp(-delE)
             
             aggOcc = aggOcc + relMult/(1+relMult)
                                 
         elif regObj.spacing[i] >= 0:    #if it's a non-overlapping site, just assume independent binding and add its occupancy to aggOcc
-                                        # this is only fine if never end up on index corresponding to the final member of an ovlp cluster (else it would initiate here)
+                                        # this is only fine if never end here with index corresponding to the final member of an ovlp cluster (else it would initiate here)
             
-            delE = math.log(regObj.Score[i]/concO)
+            delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
             
             relMult = (conc/concO)*math.exp(-delE)
             
             aggOcc = aggOcc + relMult/(1+relMult)
             
-        else: #must be an overlapping site (negative spacing), note this is fine because an ovlp cluster can't start on the last site
+        else: # -------------- must be an overlapping site (negative spacing), note that an ovlp cluster can't start on the last site
             
             start = i
             
@@ -129,10 +129,34 @@ def general_statmech_model(regObj, conc, concO=0.6):
                     eachSitesOverlaps.append(tempList) #then append this list of sites overlapping with j to eachSitesOverlaps, and move to next site j+1
             
             allCombosList = list(powerset(np.arange(start,end+1))) #generate all possible combinations of sites (including states impossible due to binding exclusivity)
-                        
             possibleStates = restrict_to_possible_states(allCombosList, eachSitesOverlaps) #list of possible states (sites that con be concurrently occupied in the ovlp cluster)
-        
-        #after we're done with the overlapping cluster, move on
+            
+            # iterate over possible states and generate a relative boltzmann-weighted multiplicity for each, by summing the delta binding energies (relative to Esol)
+            
+            aggWeightedMeanOcc = 0 # Accumulate the numerator in the: weighted average (Pocc) mean occupancy calculation  (note that unbound state is multiplied by 0 sites)
+            aggPartitionFunction = 0 # Accumulate the denominator (note that the unbound state results in +1)
+            
+            for y in range(len(possibleStates)):
+                
+                aggDelE = 0
+                numSites = len(possibleStates[y])
+                
+                for z in range(numSites):
+                    
+                    siteIndex = possibleStates[y][z] # index (in regEle object) of current site in current binding state
+                    aggDelE = aggDelE + math.log(regObj.siteAffinities[siteIndex]*consensusKd/concO) # iterate and sum the deltaEnergy terms for that state
+                    
+                relMultOvlp = ((conc/concO)**numSites)*math.exp(-aggDelE) # calculate the weighted relative multiplicity term for that state (see PBOC or notes for derivation)
+                
+                aggPartitionFunction = aggPartitionFunction + relMultOvlp
+                
+                aggWeightedMeanOcc = aggWeightedMeanOcc + numSites*relMultOvlp
+                
+            meanOcc = aggWeightedMeanOcc/aggPartitionFunction # do the mean occupancy calculation
+            
+            aggOcc = aggOcc + meanOcc # add the occupancy from the ovlp cluster to the occupancy for the overall regulatory element
+                    
+        # -------------- after we're done with the case (non-ovlp site or ovlp cluster), move on to the next site
         i += 1
 
         
