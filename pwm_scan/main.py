@@ -8,6 +8,7 @@ from tqdm import tqdm
 from dataclasses import dataclass, field
 from itertools import dropwhile
 import matplotlib.pyplot as plt 
+from statMechModel import general_statmech_model
 
 class PWMScan(object):
     def __init__(self):
@@ -816,8 +817,36 @@ class PWMScan(object):
         #Generating a bar plot from a flat dataframe
         fig, ax = plt.subplots()
         self.flat_df_count[0].plot(ax=ax, kind='bar')
-
         
+        
+    def calc_reg_list_mean_occ(self, regObjList, conc=16, consensusKd=16, concO=0.6):
+        """
+        Method calculates the mean occupancy, and converts the input list of objects into a dataframe, with a mean occupancy column.
+
+        Parameters
+        ----------
+        regObjList : List of regulatory objects
+            Object is from class RegEle.
+
+        Returns
+        -------
+        Dataframe corresponding to the input list of objects, with an additional column for the mean occupancy.
+
+        """
+        df = pd.DataFrame(columns=pd.DataFrame([vars(regObjList[0])]).columns) #Make an empty dataframe with columns correesponding to properties of regObjList
+        df["meanOcc"]="" #add a 'meanOcc' coloumn for mean occupancy
+        
+        for i in range(len(regObjList)):
+            
+            meanOcc = general_statmech_model(regObjList[i], conc, consensusKd, concO)  #calculate the occupancy of the i'th object
+            
+            df = df.append(pd.DataFrame([vars(regObjList[i])])) #append the i'th object to df
+            
+            df.loc[i].meanOcc = meanOcc
+            
+            
+            
+            
     
 @dataclass    
 class RegEle: #Regulatory Elements

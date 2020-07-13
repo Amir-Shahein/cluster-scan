@@ -47,7 +47,7 @@ import numpy as np
 
 
 
-def general_statmech_model(regObj, conc, consensusKd=1, concO=0.6):
+def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
     
     """
     This method takes as input a regulatory element (module) object of binding sites 
@@ -112,25 +112,29 @@ def general_statmech_model(regObj, conc, consensusKd=1, concO=0.6):
                     break
             
             end = i
-            
+            print(start)
+            print(end)
             #identify all binding sites that overlap with each binding site (create a separate list for each site), and append these to eachSitesOverlaps
             for j in range(start,end+1): #for a given site j in the ovlp cluster
                 
+                tempList = []
+                
                 for k in range(start,end+1): #do the other sites k in the cluster
-                    
-                    tempList = []
-                    
+                       
                     if k is not j: #ignoring that site j itself
                     
                         if (k<j and regObj.endPos[k] >= regObj.startPos[j]) or (k>j and regObj.startPos[k] <= regObj.endPos[j]): #overlap with site j?
                             
                             tempList.append(k) #for each site j, append all sites k that do overlap, into tempList
                     
+                if tempList:
                     eachSitesOverlaps.append(tempList) #then append this list of sites overlapping with j to eachSitesOverlaps, and move to next site j+1
-            
+        
             allCombosList = list(powerset(np.arange(start,end+1))) #generate all possible combinations of sites (including states impossible due to binding exclusivity)
             possibleStates = restrict_to_possible_states(allCombosList, eachSitesOverlaps) #list of possible states (sites that con be concurrently occupied in the ovlp cluster)
-            
+            print(allCombosList)
+            print(eachSitesOverlaps)
+            print(possibleStates)
             # iterate over possible states and generate a relative boltzmann-weighted multiplicity for each, by summing the delta binding energies (relative to Esol)
             
             aggWeightedMeanOcc = 0 # Accumulate the numerator in the: weighted average (Pocc) mean occupancy calculation  (note that unbound state is multiplied by 0 sites)
@@ -149,7 +153,7 @@ def general_statmech_model(regObj, conc, consensusKd=1, concO=0.6):
                 relMultOvlp = ((conc/concO)**numSites)*math.exp(-aggDelE) # calculate the weighted relative multiplicity term for that state (see PBOC or notes for derivation)
                 
                 aggPartitionFunction = aggPartitionFunction + relMultOvlp
-                
+                print(aggPartitionFunction)
                 aggWeightedMeanOcc = aggWeightedMeanOcc + numSites*relMultOvlp
                 
             meanOcc = aggWeightedMeanOcc/aggPartitionFunction # do the mean occupancy calculation
@@ -157,8 +161,10 @@ def general_statmech_model(regObj, conc, consensusKd=1, concO=0.6):
             aggOcc = aggOcc + meanOcc # add the occupancy from the ovlp cluster to the occupancy for the overall regulatory element
                     
         # -------------- after we're done with the case (non-ovlp site or ovlp cluster), move on to the next site
+        print(aggOcc)
         i += 1
-
+        
+    return aggOcc
         
         
 def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
@@ -176,7 +182,7 @@ def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
     -------
     possibleStates : List of lists
         This method processes the allCombosList into a list of possible states (no overlapping sites in a given state),
-        using the lists of which sites overlap with which (eachSitesOverlaps)
+        using the lists sites that overlap with each given site (eachSitesOverlaps)
 
     """
     
@@ -187,22 +193,28 @@ def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
     
     for j in range(len(allCombosList)): # for each tuple j in allCombosList
         
-        keep = True # start by assuming we will keep this state (i.e. all of the sites in the lits can be occupied at once)
+        keep = True # start by assuming we will keep this state (i.e. all of the sites in the list can be occupied at once)
         
         for x in range(len(eachSitesOverlaps)): # for each list x of overlapping sites
             
-            count=0 # the number of sites from the state (j) that are in a given list of overlapping sites
+            applicable=False # if the site is present in the j state, to which list x actually corresponds
+            overlapping=False # assuming the site corresponding to list x is present, is one of the sites that overlaps with it present?
             
             for k in range(len(allCombosList[j])): # for a given site k in state j
                 
                 for n in range(len(eachSitesOverlaps[x])): # iterate through the sites in list x
                     
-                    if allCombosList[j][k] == eachSitesOverlaps[x][n]: # +1 for each site in state j found in list x
-                        
-                        count += 1
-                        
-            if count>1: # if more than one site in state j is found in any of the individual lists (x's) in eachSsitesOverlaps, game over for that state j
-                keep = False
+                    if allCombosList[j][k] == x and applicable == False: # is the site present in state j, to which the list X (of its overlapping sites) actually corresponds?
+                        applicable = True
+                    
+                    if allCombosList[j][k] == eachSitesOverlaps[x][n] and overlapping == False: # if a site in state j is found in list x
+                        overlapping=True
+                    
+                    if applicable == True and overlapping == True: # if both conditions are met at any point, the state is invalid, break out of loop
+                        keep = False
+                        break
+                    
+            if applicable == True and overlapping == True: # if the state is invalid at any point, break out of loop
                 break
             
         if keep == True: #if keep is still true, that state is possible, append it to possibleStates, otherwise move to the next state j+1
