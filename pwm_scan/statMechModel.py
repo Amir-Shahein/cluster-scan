@@ -44,10 +44,62 @@ import numpy as np
 
 # # plt.show()
 # plt.savefig('threeSiteWithOverlaps')
+# -------------------------------------------
+ # This method takes as input a dataframe of regulatory hits (binding sites identified in regulatory
+ #    regions of the genome). This method uses the affinity score from this df together with a statistical
+ #    mechanical model of transcription factor binding (Philips) in order to fill in a new mean occupancy
+ #    column in the dataframe. 
+
+# TESTING OUT SIMPLIFICATION OF SINGLE BINDING SITES INTO INDEPENDENT BINDERS
+# conc = 16
+# concO = 0.6
+# consensusKd = 16
+# de0 = math.log(10*consensusKd/concO)
+# de1 = math.log(30*consensusKd/concO)
+
+# relMult0 = (conc/concO)*math.exp(-de0)
+# relMult1  = (conc/concO)*math.exp(-de1)
+# relMult2 = ((conc/concO)**2)*math.exp(-(de0+de1))
+
+# meanOccNonInd = (1*relMult0 + 1*relMult1 + 2*relMult2)/(1+ relMult0 + relMult1 + relMult2)
+# print(meanOccNonInd)
+
+# meanOccInd = 1*relMult0/(1+relMult0) + (1*relMult1)/(1+relMult1)
+# print(meanOccInd)
+
+def single_site_statmech_model(KdRatio, conc=16, consensusKd=16, concO=0.6):
+    """
+    This method takes as input the affinity (ratio of Kd to Kd consensus) of a single transcription factor binding site, and outputs
+    the mean occupancy based on a statistical mechanical model of transcription factor binding (Philips).
+    
+
+    Parameters
+    ----------
+    KdRatio : float
+        Kd-site/Kd-consensus.
+    conc : float, optional
+        Concentration of transcription factor for the model. The default is 16, corresponding to the Kd of the consensus sequence
+        (therefore, setting the occupancy of the consensus sequence to 0.5 -- similar to Maerkl 2007 and before)
+    consensusKd : float, optional
+        Kd of the consensus sequence, used to convert the KdRatio to actual Kd. The default is 16.
+    concO : float, optional
+        Reference concentration for the Philips'ian stat.mech. model. The default is 0.6.
+
+    Returns
+    -------
+    meanOcc. The mean occupancy of the binding site, according to the supplied parameters.
+
+    """
+    delE = math.log(KdRatio*consensusKd/concO)
+    
+    relMult = (conc/concO)*math.exp(-delE)
+    meanOcc = relMult/(1+relMult)
+    
+    return meanOcc
+    
 
 
-
-def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
+def general_cluster_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
     
     """
     This method takes as input a regulatory element (module) object of binding sites 

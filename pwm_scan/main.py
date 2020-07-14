@@ -8,7 +8,8 @@ from tqdm import tqdm
 from dataclasses import dataclass, field
 from itertools import dropwhile
 import matplotlib.pyplot as plt 
-from statMechModel import general_statmech_model
+from statMechModel import general_cluster_statmech_model
+from statMechModel import single_site_statmech_model
 
 class PWMScan(object):
     def __init__(self):
@@ -817,9 +818,35 @@ class PWMScan(object):
         #Generating a bar plot from a flat dataframe
         fig, ax = plt.subplots()
         self.flat_df_count[0].plot(ax=ax, kind='bar')
+    
+    def ss_reglist_calc_meanOcc(self, df, conc=16, consensusKd=16, concO=0.6):
+        """
+        This method takes as input a dataframe of binding site hits, and modifies the dataframe in order to have a meanOccupancy column.
+
+        Parameters
+        ----------
+        df : dataframe
+            the dataframe of hits and properties.
+
+        Returns
+        -------
+        The modified dataframe.
+
+        """
+        
+        df["meanOcc"]=""
+        
+        for p in tqdm(range(len(df))):
+            
+            mOcc = single_site_statmech_model(df.loc[p].Score, conc, consensusKd, concO)
+            
+            df.at[p,'meanOcc'] = mOcc
+                        
+        return df
         
         
-    def calc_reg_list_mean_occ(self, regObjList, conc=16, consensusKd=16, concO=0.6):
+        
+    def cluster_reglist_calc_meanOcc(self, regObjList, conc=16, consensusKd=16, concO=0.6):
         """
         Method calculates the mean occupancy, and converts the input list of objects into a dataframe, with a mean occupancy column.
 
@@ -838,14 +865,19 @@ class PWMScan(object):
         
         for p in tqdm(range(len(regObjList))):
             
-            meanOcc = general_statmech_model(regObjList[p], conc, consensusKd, concO)  #calculate the occupancy of the i'th object
+            meanOcc = general_cluster_statmech_model(regObjList[p], conc, consensusKd, concO)  #calculate the occupancy of the i'th object
             df = df.append(pd.DataFrame([vars(regObjList[p])]),ignore_index=True) #append the i'th object to df
             df.loc[p].meanOcc = meanOcc
-        
         return df
             
             
-            
+    def plot_meanOcc(self, dfCluster, dfSingle, binz):
+        """
+        Method plots the meanOcc column of the input dataframe as a histogram with bins.
+
+        """
+        df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['clusters','single sites'])
+        df.plot.hist(bins=binz, alpha=0.3, logy=True)
             
     
 @dataclass    
