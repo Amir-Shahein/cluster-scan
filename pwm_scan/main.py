@@ -834,15 +834,15 @@ class PWMScan(object):
 
         """
         df = pd.DataFrame(columns=pd.DataFrame([vars(regObjList[0])]).columns) #Make an empty dataframe with columns correesponding to properties of regObjList
-        df["meanOcc"]="" #add a 'meanOcc' coloumn for mean occupancy
+        df["meanOcc"]="" #add a 'meanOcc' column for mean occupancy
         
-        for i in range(len(regObjList)):
+        for p in tqdm(range(len(regObjList))):
             
-            meanOcc = general_statmech_model(regObjList[i], conc, consensusKd, concO)  #calculate the occupancy of the i'th object
-            
-            df = df.append(pd.DataFrame([vars(regObjList[i])])) #append the i'th object to df
-            
-            df.loc[i].meanOcc = meanOcc
+            meanOcc = general_statmech_model(regObjList[p], conc, consensusKd, concO)  #calculate the occupancy of the i'th object
+            df = df.append(pd.DataFrame([vars(regObjList[p])]),ignore_index=True) #append the i'th object to df
+            df.loc[p].meanOcc = meanOcc
+        
+        return df
             
             
             

@@ -80,7 +80,6 @@ def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
     i=0
     
     while i < len(regObj.startPos):
-        
         if i == len(regObj.spacing): # account for the last site (note: we'd only arrive here if it's not part of an ovlp cluster)
             
             delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
@@ -112,8 +111,6 @@ def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
                     break
             
             end = i
-            print(start)
-            print(end)
             #identify all binding sites that overlap with each binding site (create a separate list for each site), and append these to eachSitesOverlaps
             for j in range(start,end+1): #for a given site j in the ovlp cluster
                 
@@ -132,9 +129,6 @@ def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
         
             allCombosList = list(powerset(np.arange(start,end+1))) #generate all possible combinations of sites (including states impossible due to binding exclusivity)
             possibleStates = restrict_to_possible_states(allCombosList, eachSitesOverlaps) #list of possible states (sites that con be concurrently occupied in the ovlp cluster)
-            print(allCombosList)
-            print(eachSitesOverlaps)
-            print(possibleStates)
             # iterate over possible states and generate a relative boltzmann-weighted multiplicity for each, by summing the delta binding energies (relative to Esol)
             
             aggWeightedMeanOcc = 0 # Accumulate the numerator in the: weighted average (Pocc) mean occupancy calculation  (note that unbound state is multiplied by 0 sites)
@@ -153,7 +147,6 @@ def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
                 relMultOvlp = ((conc/concO)**numSites)*math.exp(-aggDelE) # calculate the weighted relative multiplicity term for that state (see PBOC or notes for derivation)
                 
                 aggPartitionFunction = aggPartitionFunction + relMultOvlp
-                print(aggPartitionFunction)
                 aggWeightedMeanOcc = aggWeightedMeanOcc + numSites*relMultOvlp
                 
             meanOcc = aggWeightedMeanOcc/aggPartitionFunction # do the mean occupancy calculation
@@ -161,7 +154,6 @@ def general_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
             aggOcc = aggOcc + meanOcc # add the occupancy from the ovlp cluster to the occupancy for the overall regulatory element
                     
         # -------------- after we're done with the case (non-ovlp site or ovlp cluster), move on to the next site
-        print(aggOcc)
         i += 1
         
     return aggOcc
