@@ -1,2 +1,8 @@
+*.ipynb_checkpoints/
+/ignore
+*.ipynb
+/input_data
+/data_saves
+/plots
 *.pyc
 __pycache__
