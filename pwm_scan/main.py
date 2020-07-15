@@ -876,8 +876,8 @@ class PWMScan(object):
         Method plots the meanOcc column of the input dataframe as a histogram with bins.
 
         """
-        df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['clusters','single sites'])
-        df.plot.hist(bins=binz, alpha=0.3, logy=True)
+        df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['Clusters','Single sites'])
+        df.plot.hist(bins=binz, alpha=0.3, logy=True, dpi=1200)
             
     
 @dataclass    
