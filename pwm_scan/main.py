@@ -1,5 +1,5 @@
 # amir.shahein@epfl.ch
-# This script uses some material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
+# This script uses a bit of material from Yu-Cheng Lin's Github project: https://github.com/linyc74/pwm_scan (project accessed Feb. 28th 2020)
 
 import re
 import numpy as np
@@ -751,7 +751,7 @@ class PWMScan(object):
                 cStrandTemp = []
                 
             else: #if not from same promoter OR not within maxGap, and not the last site of the cluster, then it's a single binding site
-                self.non_clus_reg_hits = self.non_clus_reg_hits.append(regHitsDF.loc[i])
+                self.non_clus_reg_hits = self.non_clus_reg_hits.append(regHitsDF.loc[i], ignore_index=True)
         
         #Need to deal with the last iteration
         i=i+1
@@ -844,8 +844,6 @@ class PWMScan(object):
                         
         return df
         
-        
-        
     def cluster_reglist_calc_meanOcc(self, regObjList, conc=16, consensusKd=16, concO=0.6):
         """
         Method calculates the mean occupancy, and converts the input list of objects into a dataframe, with a mean occupancy column.
@@ -869,19 +867,85 @@ class PWMScan(object):
             df = df.append(pd.DataFrame([vars(regObjList[p])]),ignore_index=True) #append the i'th object to df
             df.loc[p].meanOcc = meanOcc
         return df
-            
-            
-    def plot_meanOcc(self, dfCluster, dfSingle, binz):
+                    
+    def plot_meanOcc(self, dfCluster, dfSingle, binz=100, spacing=None):
         """
-        Method plots the meanOcc column of the input dataframe as a histogram with bins.
+        Method plots the meanOcc column of the input dataframes histograms on the same plot.
 
         """
-        df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['Clusters','Single sites'])
-        df.plot.hist(bins=binz, alpha=0.3, logy=True, dpi=1200)
         
-        
-    #def parameter_scan_spacing(self, )
+        plt.hist(dfCluster['meanOcc'], label='Clusters', logy=True, alpha=0.3, bins=binz, dpi=1200)
+        plt.hist(dfSingle['meanOcc'], label='Single sites', logy=True, alpha=0.3, bins=binz, dpi=1200)
+        plt.legend(loc='best')
+        plt.title('Threshold: '+str(spacing)+'bp max between sites')
+        plt.ylabel('Frequency')
+        plt.xlabel('Mean occupancy')
+        plt.show()
+        # df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['Clusters','Single sites'])
+        # df.plot.hist(bins=binz, alpha=0.3, logy=True, dpi=1200)
+        # if spacing:
             
+        
+    def parameter_scan_spacing(self, regHitsDf, spacingList, siteLen=9, plot=False):
+        """
+        This method takes as input a dataframe of regulatory hits (binding sites identified
+        in promoter sequences), and then turns them into clusters vs. non-clusters through
+        the generate_reg_elements_clusters method. Following this, this method takes the
+        output (resets index where appropriate), and builds a dataframe with an extra meanOcc column,
+        using ss_reglist_calc_meanOcc and cluster_regList_calc_meanOcc  methods. The sum of this column
+        is calculated, and stored in ss_totalMeanOcc or clus_totalMeanOcc dataframes. This is done
+        for each spacing value in spacingList. If plot==True, then a frequency vs. occupancy histogram 
+        is plotted for each spacing, using plot_meanOcc method. This method finishes by returning 
+        both ss_totalMeanOcc and clus_totalMeanOcc dataframes, and generating 
+        a plot of spacing vs. total occupancy score.
+
+        Parameters
+        ----------
+        plot : Boolean
+            If true then plot the histograms corresponding to the frequency vs ooccupancy.
+            
+        regHitsDF: dataframe of regulatory hits
+        
+        spacingList: List of spacing values to calculate total mean occupancy sscoress for,
+                    and for which to plot
+        
+        Returns
+        -------
+        None.
+
+        """
+        
+        ss_totalMeanOcc = pd.DataFrame(columns=['Spacing','Total_mean_occ'])
+        clus_totalMeanOcc = pd.DataFrame(columns=['Spacing','Total_mean_occ'])
+        
+        for i in range(len(spacingList)):
+            
+            self.generate_reg_elements_clusters(regHitsDf, spacingList[i], siteLength=siteLen)
+            
+            clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=16, consensusKd=16, concO=0.6)
+            
+            clusSumMeanOcc = clusDF['meanOcc'].sum()
+            
+            self.non_clus_reg_hits = self.misc_process_df(self.non_clus_reg_hits, resetIndex=True) #use this method to reset df index, just in case
+            
+            ssDF = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, conc=16, consensusKd=16, concO=0.6)
+            
+            ssSumMeanOcc = ssDF['meanOcc'].sum()
+            
+            ss_totalMeanOcc = ss_totalMeanOcc.append({'Spacing': spacingList[i], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
+            clus_totalMeanOcc = clus_totalMeanOcc.append({'Spacing': spacingList[i], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
+            
+            if plot==True:
+                self.plot_meanOcc(clusDF, ssDF, binz=100, spacing=spacingList[i])
+            
+            plt.plot(ss_totalMeanOcc['Spacing'], ss_totalMeanOcc['Total_mean_occ'], label='Single sites', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+            plt.plot(clus_totalMeanOcc['Spacing'], clus_totalMeanOcc['Total_mean_occ'], label='Clusters', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+            plt.legend(loc='best')
+            plt.ylabel('Total Mean Occ. Score')
+            plt.xlabel('Max Spacing Threshold')
+            plt.show()                
+            
+            return ss_totalMeanOcc, clus_totalMeanOcc
     
 @dataclass    
 class RegEle: #Regulatory Elements
