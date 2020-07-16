@@ -874,8 +874,9 @@ class PWMScan(object):
 
         """
         
-        plt.hist(dfCluster['meanOcc'], label='Clusters', logy=True, alpha=0.3, bins=binz, dpi=1200)
-        plt.hist(dfSingle['meanOcc'], label='Single sites', logy=True, alpha=0.3, bins=binz, dpi=1200)
+        plt.hist(dfCluster['meanOcc'], label='Clusters', alpha=0.3, bins=binz)
+        plt.hist(dfSingle['meanOcc'], label='Single sites', alpha=0.3, bins=binz)
+        plt.yscale('log', nonposy='clip')
         plt.legend(loc='best')
         plt.title('Threshold: '+str(spacing)+'bp max between sites')
         plt.ylabel('Frequency')
@@ -942,7 +943,7 @@ class PWMScan(object):
             plt.plot(clus_totalMeanOcc['Spacing'], clus_totalMeanOcc['Total_mean_occ'], label='Clusters', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
             plt.legend(loc='best')
             plt.ylabel('Total Mean Occ. Score')
-            plt.xlabel('Max Spacing Threshold')
+            plt.xlabel('Max Spacing Threshold (bp')
             plt.show()                
             
             return ss_totalMeanOcc, clus_totalMeanOcc
