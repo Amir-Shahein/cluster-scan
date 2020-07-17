@@ -874,13 +874,16 @@ class PWMScan(object):
 
         """
         
-        plt.hist(dfCluster['meanOcc'], label='Clusters', alpha=0.3, bins=binz)
-        plt.hist(dfSingle['meanOcc'], label='Single sites', alpha=0.3, bins=binz)
+        plt.hist(dfCluster['meanOcc'], label='Clusters', alpha=0.4, bins=binz)
+        plt.hist(dfSingle['meanOcc'], label='Single sites', alpha=0.4, bins=binz)
         plt.yscale('log', nonposy='clip')
         plt.legend(loc='best')
         plt.title('Threshold: '+str(spacing)+'bp max between sites')
         plt.ylabel('Frequency')
         plt.xlabel('Mean occupancy')
+        if spacing:
+            fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/clusters_vs_singlesites_histogram_meanOcc_threshold30_maxGap'+str(spacing)+'.jpeg'
+            plt.savefig(fname, dpi=1200, quality=95)
         plt.show()
         # df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['Clusters','Single sites'])
         # df.plot.hist(bins=binz, alpha=0.3, logy=True, dpi=1200)
@@ -939,14 +942,16 @@ class PWMScan(object):
             if plot==True:
                 self.plot_meanOcc(clusDF, ssDF, binz=100, spacing=spacingList[i])
             
-            plt.plot(ss_totalMeanOcc['Spacing'], ss_totalMeanOcc['Total_mean_occ'], label='Single sites', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
-            plt.plot(clus_totalMeanOcc['Spacing'], clus_totalMeanOcc['Total_mean_occ'], label='Clusters', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
-            plt.legend(loc='best')
-            plt.ylabel('Total Mean Occ. Score')
-            plt.xlabel('Max Spacing Threshold (bp')
-            plt.show()                
+        plt.plot(ss_totalMeanOcc['Spacing'], ss_totalMeanOcc['Total_mean_occ'], label='Single sites', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(clus_totalMeanOcc['Spacing'], clus_totalMeanOcc['Total_mean_occ'], label='Clusters', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.legend(loc='best')
+        plt.ylabel('Total Mean Occ. Score')
+        plt.xlabel('Between-site Spacing Threshold (bp)')
+        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/total_mean_occ_for_different_spacing_thresholds.jpeg'
+        plt.savefig(fname, dpi=1200, quality=95)
+        plt.show()                
             
-            return ss_totalMeanOcc, clus_totalMeanOcc
+        return ss_totalMeanOcc, clus_totalMeanOcc
     
 @dataclass    
 class RegEle: #Regulatory Elements
