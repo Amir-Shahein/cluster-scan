@@ -819,7 +819,7 @@ class PWMScan(object):
         fig, ax = plt.subplots()
         self.flat_df_count[0].plot(ax=ax, kind='bar')
     
-    def ss_reglist_calc_meanOcc(self, df, conc=16, consensusKd=16, concO=0.6):
+    def ss_reglist_calc_meanOcc(self, df, highAffOccThresh=None, conc=16, consensusKd=16, concO=0.6):
         """
         This method takes as input a dataframe of binding site hits, and modifies the dataframe in order to have a meanOccupancy column.
 
@@ -827,12 +827,18 @@ class PWMScan(object):
         ----------
         df : dataframe
             the dataframe of hits and properties.
+            
+        highAffOccThresh: float
+            if this variable is specified, it means that we only want to look at high affinity sites
 
         Returns
         -------
         The modified dataframe.
 
         """
+        
+        if highAffOccThresh:
+            df = self.misc_process_df(df, threshold=highAffOccThresh, resetIndex=True)
         
         df["meanOcc"]=""
         
@@ -844,7 +850,7 @@ class PWMScan(object):
                         
         return df
         
-    def cluster_reglist_calc_meanOcc(self, regObjList, conc=16, consensusKd=16, concO=0.6):
+    def cluster_reglist_calc_meanOcc(self, regObjList, lowAffinityOccThresh=None, conc=16, consensusKd=16, concO=0.6):
         """
         Method calculates the mean occupancy, and converts the input list of objects into a dataframe, with a mean occupancy column.
 
@@ -852,6 +858,14 @@ class PWMScan(object):
         ----------
         regObjList : List of regulatory objects
             Object is from class RegEle.
+            
+        lowAffinityOccThresh : float
+            If specified, this means we only care about the mean occupancy coming from low-affinity sites,
+            which have Kd values above the threshold ratio stored in this variable. In order to implement
+            this, for independent binding sites, we skip the occupancy contribution if the site's Kd is 
+            below this threshold. For overlapping clusters, we multiply each state's weighted rel. mult.
+            by the number of low-affinity binding sites instead of the total number of binding sites, before
+            dividing by the partition function.
 
         Returns
         -------
@@ -863,7 +877,7 @@ class PWMScan(object):
         
         for p in tqdm(range(len(regObjList))):
             
-            meanOcc = general_cluster_statmech_model(regObjList[p], conc, consensusKd, concO)  #calculate the occupancy of the i'th object
+            meanOcc = general_cluster_statmech_model(regObjList[p], lowAffinityOccThresh, conc, consensusKd, concO)  #calculate the occupancy of the i'th object
             df = df.append(pd.DataFrame([vars(regObjList[p])]),ignore_index=True) #append the i'th object to df
             df.loc[p].meanOcc = meanOcc
         return df
@@ -885,12 +899,8 @@ class PWMScan(object):
             fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/clusters_vs_singlesites_histogram_meanOcc_threshold30_maxGap'+str(spacing)+'.jpeg'
             plt.savefig(fname, dpi=1200, quality=95)
         plt.show()
-        # df = pd.concat([dfCluster['meanOcc'], dfSingle['meanOcc']], axis=1, keys=['Clusters','Single sites'])
-        # df.plot.hist(bins=binz, alpha=0.3, logy=True, dpi=1200)
-        # if spacing:
-            
         
-    def parameter_scan_spacing(self, regHitsDf, spacingList, siteLen=9, plot=False):
+    def parameter_scan_spacing(self, regHitsDf, spacingList, lowAffinityOccThreshList=None, siteLen=9, plot=False):
         """
         This method takes as input a dataframe of regulatory hits (binding sites identified
         in promoter sequences), and then turns them into clusters vs. non-clusters through
@@ -912,40 +922,50 @@ class PWMScan(object):
         
         spacingList: List of spacing values to calculate total mean occupancy sscoress for,
                     and for which to plot
+                    
+        lowAffinityOccThreshList: list
+                If specified, this means we only care about the mean occupancy coming from low-affinity sites,
+                which have Kd values above the threshold ratio stored in this variable. In order to implement
+                this, for independent binding sites, we skip the occupancy contribution if the site's Kd is 
+                below this threshold (done for each threshold, and each spacing). For overlapping clusters, 
+                we multiply each state's weighted rel. mult. by the number of low-affinity binding sites 
+                instead of the total number of binding sites, before dividing by the partition function.
         
         Returns
         -------
-        None.
+        Dataframe of spacing and/or threshold vs. totalMeanOcc.
 
         """
         
-        ss_totalMeanOcc = pd.DataFrame(columns=['Spacing','Total_mean_occ'])
-        clus_totalMeanOcc = pd.DataFrame(columns=['Spacing','Total_mean_occ'])
+        ss_totalMeanOcc = pd.DataFrame(columns=['Spacing', 'Threshold', 'Total_mean_occ'])
+        clus_totalMeanOcc = pd.DataFrame(columns=['Spacing', 'Threshold', 'Total_mean_occ'])
         
-        for i in range(len(spacingList)):
-            
-            self.generate_reg_elements_clusters(regHitsDf, spacingList[i], siteLength=siteLen)
-            
-            clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=16, consensusKd=16, concO=0.6)
-            
-            clusSumMeanOcc = clusDF['meanOcc'].sum()
-            
-            self.non_clus_reg_hits = self.misc_process_df(self.non_clus_reg_hits, resetIndex=True) #use this method to reset df index, just in case
-            
-            ssDF = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, conc=16, consensusKd=16, concO=0.6)
-            
-            ssSumMeanOcc = ssDF['meanOcc'].sum()
-            
-            ss_totalMeanOcc = ss_totalMeanOcc.append({'Spacing': spacingList[i], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
-            clus_totalMeanOcc = clus_totalMeanOcc.append({'Spacing': spacingList[i], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
-            
-            if plot==True:
-                self.plot_meanOcc(clusDF, ssDF, binz=100, spacing=spacingList[i])
+        for j in range(len(lowAffinityOccThreshList)):
+        
+            for i in range(len(spacingList)):
+                
+                self.generate_reg_elements_clusters(regHitsDf, spacingList[i], siteLength=siteLen)
+                
+                clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, lowAffinityOccThreshList[j], conc=16, consensusKd=16, concO=0.6)
+                
+                clusSumMeanOcc = clusDF['meanOcc'].sum()
+                
+                self.non_clus_reg_hits = self.misc_process_df(self.non_clus_reg_hits, resetIndex=True) #use this method to reset df index, just in case
+                
+                ssDF = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, highAffOccThresh=lowAffinityOccThreshList[j], conc=16, consensusKd=16, concO=0.6)
+                
+                ssSumMeanOcc = ssDF['meanOcc'].sum()
+                
+                ss_totalMeanOcc = ss_totalMeanOcc.append({'Spacing': spacingList[i], 'Threshold': lowAffinityOccThreshList[j], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
+                clus_totalMeanOcc = clus_totalMeanOcc.append({'Spacing': spacingList[i], 'Threshold': lowAffinityOccThreshList[j], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
+                
+                if plot==True:
+                    self.plot_meanOcc(clusDF, ssDF, binz=100, spacing=spacingList[i], threshold=lowAffinityOccThreshList[j])
             
         plt.plot(ss_totalMeanOcc['Spacing'], ss_totalMeanOcc['Total_mean_occ'], label='Single sites', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
         plt.plot(clus_totalMeanOcc['Spacing'], clus_totalMeanOcc['Total_mean_occ'], label='Clusters', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
         plt.legend(loc='best')
-        plt.ylabel('Total Mean Occ. Score')
+        plt.ylabel('Total Mean Occ.  ')
         plt.xlabel('Between-site Spacing Threshold (bp)')
         fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/total_mean_occ_for_different_spacing_thresholds.jpeg'
         plt.savefig(fname, dpi=1200, quality=95)

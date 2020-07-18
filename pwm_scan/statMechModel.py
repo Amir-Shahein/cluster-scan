@@ -99,7 +99,7 @@ def single_site_statmech_model(KdRatio, conc=16, consensusKd=16, concO=0.6):
     
 
 
-def general_cluster_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
+def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consensusKd=16, concO=0.6):
     
     """
     This method takes as input a regulatory element (module) object of binding sites 
@@ -117,6 +117,14 @@ def general_cluster_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
     delE (change in energy with binding, relative to solution) in units Boltzmann constant*T (1/beta) = ln(Kd/concO)
     When calculating occupancy, I first convert Kds into this delE value in terms of Kb*T
     
+    lowAffinityOcc: float
+        If specified, this means we only care about the mean occupancy coming from low-affinity sites,
+        which have Kd values above the threshold ratio stored in this variable. In order to implement
+        this, for independent binding sites, we skip the occupancy contribution if the site's Kd is 
+        below this threshold. For overlapping clusters, we multiply each state's weighted rel. mult.
+        by the number of low-affinity binding sites instead of the total number of binding sites, before
+        dividing by the partition function.
+    
     Returns
     -------
     Mean occupancy of the input regulatory module.
@@ -132,22 +140,41 @@ def general_cluster_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
     i=0
     
     while i < len(regObj.startPos):
-        if i == len(regObj.spacing): # account for the last site (note: we'd only arrive here if it's not part of an ovlp cluster)
+        
+        # -------------- if it's a non-overlapping site, just assume independent binding and add its occupancy to aggOcc
+        if i == len(regObj.spacing): # account for the last site (note: we'd only arrive here if it's not part of an ovlp cluster (but can't check spacing),
+                                     # so it's fine not to check, and just assume non-overlapping)
             
-            delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+            if lowAffinityOcc: # see parameter definition
+                if regObj.siteAffinities[i]>=lowAffinityOcc:
+                    delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+                
+                    relMult = (conc/concO)*math.exp(-delE) # note that we technically multiply relMult by numSites in the numerator (which is 1) to calculate meanOcc
+                
+                    aggOcc = aggOcc + relMult/(1+relMult)
             
-            relMult = (conc/concO)*math.exp(-delE)
-            
-            aggOcc = aggOcc + relMult/(1+relMult)
+            else: # note: this gets skipped if lowAffinityOcc=True, but site affinity < lowAffinityOcc, and therefore higher affinity non-ovlp sites are not added
+                delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+                
+                relMult = (conc/concO)*math.exp(-delE)
+                
+                aggOcc = aggOcc + relMult/(1+relMult)
                                 
-        elif regObj.spacing[i] >= 0:    #if it's a non-overlapping site, just assume independent binding and add its occupancy to aggOcc
-                                        # this is only fine if never end here with index corresponding to the final member of an ovlp cluster (else it would initiate here)
+        elif regObj.spacing[i] >= 0: # this is only fine if never end here with index corresponding to the final member of an ovlp cluster (else it would initiate here)
             
-            delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+            if regObj.siteAffinities[i]>=lowAffinityOcc:
+                    delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+                
+                    relMult = (conc/concO)*math.exp(-delE)
+                
+                    aggOcc = aggOcc + relMult/(1+relMult)
             
-            relMult = (conc/concO)*math.exp(-delE)
-            
-            aggOcc = aggOcc + relMult/(1+relMult)
+            else:
+                delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+                
+                relMult = (conc/concO)*math.exp(-delE)
+                
+                aggOcc = aggOcc + relMult/(1+relMult)
             
         else: # -------------- must be an overlapping site (negative spacing), note that an ovlp cluster can't start on the last site
             
@@ -189,6 +216,8 @@ def general_cluster_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
             for y in range(len(possibleStates)):
                 
                 aggDelE = 0
+                if lowAffinityOcc:
+                    numLowAffSites=0
                 numSites = len(possibleStates[y])
                 
                 for z in range(numSites):
@@ -196,10 +225,17 @@ def general_cluster_statmech_model(regObj, conc=16, consensusKd=16, concO=0.6):
                     siteIndex = possibleStates[y][z] # index (in regEle object) of current site in current binding state
                     aggDelE = aggDelE + math.log(regObj.siteAffinities[siteIndex]*consensusKd/concO) # iterate and sum the deltaEnergy terms for that state
                     
+                    if lowAffinityOcc and (regObj.siteAffinities[siteIndex]>=lowAffinityOcc):
+                        numLowAffSites += 1
+                        
                 relMultOvlp = ((conc/concO)**numSites)*math.exp(-aggDelE) # calculate the weighted relative multiplicity term for that state (see PBOC or notes for derivation)
                 
                 aggPartitionFunction = aggPartitionFunction + relMultOvlp
-                aggWeightedMeanOcc = aggWeightedMeanOcc + numSites*relMultOvlp
+                
+                if lowAffinityOcc:
+                    aggWeightedMeanOcc = aggWeightedMeanOcc + numLowAffSites*relMultOvlp
+                else:
+                    aggWeightedMeanOcc = aggWeightedMeanOcc + numSites*relMultOvlp
                 
             meanOcc = aggWeightedMeanOcc/aggPartitionFunction # do the mean occupancy calculation
             
