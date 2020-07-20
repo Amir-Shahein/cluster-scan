@@ -146,35 +146,29 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
                                      # so it's fine not to check, and just assume non-overlapping)
             
             if lowAffinityOcc: # see parameter definition
+                
                 if regObj.siteAffinities[i]>=lowAffinityOcc:
-                    delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
-                
-                    relMult = (conc/concO)*math.exp(-delE) # note that we technically multiply relMult by numSites in the numerator (which is 1) to calculate meanOcc
-                
-                    aggOcc = aggOcc + relMult/(1+relMult)
+                    
+                    fracOcc = single_site_statmech_model(regObj.siteAffinities[i], conc, consensusKd, concO)
+                    aggOcc = aggOcc + fracOcc
             
             else: # note: this gets skipped if lowAffinityOcc=True, but site affinity < lowAffinityOcc, and therefore higher affinity non-ovlp sites are not added
-                delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
                 
-                relMult = (conc/concO)*math.exp(-delE)
-                
-                aggOcc = aggOcc + relMult/(1+relMult)
-                                
-        elif regObj.spacing[i] >= 0: # this is only fine if never end here with index corresponding to the final member of an ovlp cluster (else it would initiate here)
+                fracOcc = single_site_statmech_model(regObj.siteAffinities[i], conc, consensusKd, concO)
+                aggOcc = aggOcc + fracOcc
             
-            if regObj.siteAffinities[i]>=lowAffinityOcc:
-                    delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
+        elif regObj.spacing[i] >= 0: # this is only fine if never end here with index corresponding to the final member of an ovlp cluster (else it would trigger)
+            
+            if lowAffinityOcc:
                 
-                    relMult = (conc/concO)*math.exp(-delE)
-                
-                    aggOcc = aggOcc + relMult/(1+relMult)
+                if regObj.siteAffinities[i]>=lowAffinityOcc:
+                    
+                    fracOcc = single_site_statmech_model(regObj.siteAffinities[i], conc, consensusKd, concO)
+                    aggOcc = aggOcc + fracOcc
             
             else:
-                delE = math.log(regObj.siteAffinities[i]*consensusKd/concO)
-                
-                relMult = (conc/concO)*math.exp(-delE)
-                
-                aggOcc = aggOcc + relMult/(1+relMult)
+                    fracOcc = single_site_statmech_model(regObj.siteAffinities[i], conc, consensusKd, concO)
+                    aggOcc = aggOcc + fracOcc
             
         else: # -------------- must be an overlapping site (negative spacing), note that an ovlp cluster can't start on the last site
             
