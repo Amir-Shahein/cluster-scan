@@ -2,71 +2,6 @@ from more_itertools import powerset
 import math
 import numpy as np
 
-
-
-# def threeSiteWithOverlaps(c, de, c0=0.6):
-#     de1, de2, de3 = de
-#     z0 = 1
-#     z1 = (c/c0)*np.exp(-de1)
-#     z2 = (c/c0)*np.exp(-de3)
-#     z3 = (c/c0)**2*np.exp(-de1-de3)
-#     z4 = (c/c0)*np.exp(-de2)
-#     ztot = z0 + z1 + z2 + z3 + z4
-    
-#     p0 = z0 / ztot
-#     p1 = z1 / ztot
-#     p2 = z2 / ztot
-#     p3 = z3 / ztot
-#     p4 = z4 / ztot
-    
-#     occ = (z1 + z2 + 2*z3 + z4) / ztot
-#     res = {'p0': p0, 'p1': p1, 'p2': p2, 'p3': p3, 'p4': p4, 'occ':occ}
-#     return(res)
-
-# de = [-10, 0, -10]
-# c = np.logspace(-7, -2, 100)
-# c0 = 0.6
-# res_ref = threeSiteWithOverlaps(c, de)
-# occ_ref = res_ref['occ']
-# plt.plot(c/c0, occ_ref, 'k', label=0)
-
-# for i in [-8, -10, -12]:
-#     de[1] = i
-#     res = threeSiteWithOverlaps(c, de)
-#     occ = res['occ']
-#     plt.plot(c/c0, occ, label=i)
-
-# plt.legend(loc='best', title='Site #2 Kd')
-# plt.xscale('log')
-# plt.ylim([0,2])
-# plt.ylabel('<N>')
-# plt.xlabel('TF concentration (M)')
-
-# # plt.show()
-# plt.savefig('threeSiteWithOverlaps')
-# -------------------------------------------
- # This method takes as input a dataframe of regulatory hits (binding sites identified in regulatory
- #    regions of the genome). This method uses the affinity score from this df together with a statistical
- #    mechanical model of transcription factor binding (Philips) in order to fill in a new mean occupancy
- #    column in the dataframe. 
-
-# TESTING OUT SIMPLIFICATION OF SINGLE BINDING SITES INTO INDEPENDENT BINDERS
-# conc = 16
-# concO = 0.6
-# consensusKd = 16
-# de0 = math.log(10*consensusKd/concO)
-# de1 = math.log(30*consensusKd/concO)
-
-# relMult0 = (conc/concO)*math.exp(-de0)
-# relMult1  = (conc/concO)*math.exp(-de1)
-# relMult2 = ((conc/concO)**2)*math.exp(-(de0+de1))
-
-# meanOccNonInd = (1*relMult0 + 1*relMult1 + 2*relMult2)/(1+ relMult0 + relMult1 + relMult2)
-# print(meanOccNonInd)
-
-# meanOccInd = 1*relMult0/(1+relMult0) + (1*relMult1)/(1+relMult1)
-# print(meanOccInd)
-
 def single_site_statmech_model(KdRatio, conc=16, consensusKd=16, concO=0.6):
     """
     This method takes as input the affinity (ratio of Kd to Kd consensus) of a single transcription factor binding site, and outputs
@@ -296,5 +231,48 @@ def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
             
     return possibleStates
     
+
+
+
+
+
+# ----- CODE TESTING -------
+# def threeSiteWithOverlaps(c, de, c0=0.6):
+#     de1, de2, de3 = de
+#     z0 = 1
+#     z1 = (c/c0)*np.exp(-de1)
+#     z2 = (c/c0)*np.exp(-de3)
+#     z3 = (c/c0)**2*np.exp(-de1-de3)
+#     z4 = (c/c0)*np.exp(-de2)
+#     ztot = z0 + z1 + z2 + z3 + z4
     
+#     p0 = z0 / ztot
+#     p1 = z1 / ztot
+#     p2 = z2 / ztot
+#     p3 = z3 / ztot
+#     p4 = z4 / ztot
+#     print((z1+z3)/ztot)
+#     occ = (z1 + z2 + 2*z3 + z4) / ztot
+#     res = {'p0': p0, 'p1': p1, 'p2': p2, 'p3': p3, 'p4': p4, 'occ':occ}
+#     return(res)
+
+# consensusKd=16
+
+# c0=0.6
+# de = [math.log(28.500423084880122*consensusKd/c0), math.log(12.339657959232085*consensusKd/c0), math.log(24.912849062155786*consensusKd/c0)]
+# c=16
+# res_trg = threeSiteWithOverlaps(c,de)
+# occ = res_trg['occ']
+# print(occ)
+# p1 = res_trg['p1']
+
+# plt.legend(loc='best', title='Site #2 Kd')
+# plt.xscale('log')
+# plt.ylim([0,2])
+# plt.ylabel('<N>')
+# plt.xlabel('TF concentration (M)')
+
+# # plt.show()
+# plt.savefig('threeSiteWithOverlaps')
+# -------------------------------------------
     

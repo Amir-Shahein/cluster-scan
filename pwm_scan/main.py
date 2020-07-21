@@ -10,7 +10,7 @@ from itertools import dropwhile
 import matplotlib.pyplot as plt 
 from statMechModel import general_cluster_statmech_model
 from statMechModel import single_site_statmech_model
-from mpl_toolkits.mplot3d import axes3d
+from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 class PWMScan(object):
     def __init__(self):
@@ -970,11 +970,13 @@ class PWMScan(object):
         y = ss_totalMeanOcc['Threshold']
         z = ss_totalMeanOcc['Total_mean_occ']
         ax.plot_trisurf(x,y,z, linewidth=0.2,label='Single Sites', color='blue')
-        
         x = clus_totalMeanOcc['Spacing']
         y = clus_totalMeanOcc['Threshold']
         z = clus_totalMeanOcc['Total_mean_occ']
         ax.plot_trisurf(x,y,z, linewidth=0.2, label='Clusters', color='red')
+        ax.get_proj = lambda: np.dot(Axes3D.get_proj(ax), np.diag([1, 1, 1.5, 1]))
+        plt.xlabel('Spacing Threshold (bp)')
+        plt.ylabel('Affinity Threshold (Kd/Kd$_(cons)$)')
         plt.show()
         
         # plt.plot(ss_totalMeanOcc['Spacing'], ss_totalMeanOcc['Total_mean_occ'], label='Single sites', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
