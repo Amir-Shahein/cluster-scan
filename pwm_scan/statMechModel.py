@@ -119,8 +119,6 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
                     break
             
             end = i
-            print(start)
-            print(end)
             #identify all binding sites that overlap with each binding site (create a separate list for each site), and append these to eachSitesOverlaps
             for j in range(start,end+1): #for a given site j in the ovlp cluster
                 
@@ -140,9 +138,6 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
             allCombosList = list(powerset(np.arange(start,end+1))) #generate all possible combinations of sites (including states impossible due to binding exclusivity)
             possibleStates = restrict_to_possible_states(allCombosList, eachSitesOverlaps) #list of possible states (sites that con be concurrently occupied in the ovlp cluster)
             # iterate over possible states and generate a relative boltzmann-weighted multiplicity for each, by summing the delta binding energies (relative to Esol)
-            print(eachSitesOverlaps)
-            print(allCombosList)
-            print(possibleStates)
             aggWeightedMeanOcc = 0 # Accumulate the numerator in the: weighted average (Pocc) mean occupancy calculation  (note that unbound state is multiplied by 0 sites)
             aggPartitionFunction = 0 # Accumulate the denominator (note that the unbound state results in +1)
             
@@ -175,7 +170,6 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
             aggOcc = aggOcc + meanOcc # add the occupancy from the ovlp cluster to the occupancy for the overall regulatory element
                     
         # -------------- after we're done with the case (non-ovlp site or ovlp cluster), move on to the next site
-        print(aggOcc)
         i += 1
         
     return aggOcc
