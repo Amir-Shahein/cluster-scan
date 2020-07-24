@@ -64,7 +64,6 @@ class PWMScan(object):
         self.EPDnewIDconversions = None
         self.regElementList = None
         self.unpClusterList = None
-        self.ovlpClusterList = None
         self.regElementDict = None
         self.flat_df_count = None
         self.non_clus_reg_hits = None
@@ -777,10 +776,7 @@ class PWMScan(object):
                 
         self.regElementList = regElementList
         
-        if (maxGap <= -1):
-            self.ovlpClusterList = unpClusterList
-        else:
-            self.unpClusterList = unpClusterList
+        self.unpClusterList = unpClusterList
         
     def plot_site_spacing(self, clusterDfList):
         
@@ -1059,26 +1055,6 @@ class PWMScan(object):
         plt.show()   
         
         return ss_totalMeanOcc, clus_totalMeanOcc
-
-
-    # def 3D_plot_total_meanOcc(self, ss_totalMeanOcc, clus_totalMeanOcc):
-    #     """
-        
-
-    #     Parameters
-    #     ----------
-    #     ss_totalMeanOcc : TYPE
-    #         DESCRIPTION.
-    #     clus_totalMeanOcc : TYPE
-    #         DESCRIPTION.
-
-    #     Returns
-    #     -------
-    #     None.
-
-    #     """
-        
-        
     
 @dataclass    
 class RegEle: #Regulatory Elements

@@ -119,6 +119,8 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
                     break
             
             end = i
+            print(start)
+            print(end)
             #identify all binding sites that overlap with each binding site (create a separate list for each site), and append these to eachSitesOverlaps
             for j in range(start,end+1): #for a given site j in the ovlp cluster
                 
@@ -138,7 +140,9 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
             allCombosList = list(powerset(np.arange(start,end+1))) #generate all possible combinations of sites (including states impossible due to binding exclusivity)
             possibleStates = restrict_to_possible_states(allCombosList, eachSitesOverlaps) #list of possible states (sites that con be concurrently occupied in the ovlp cluster)
             # iterate over possible states and generate a relative boltzmann-weighted multiplicity for each, by summing the delta binding energies (relative to Esol)
-            
+            print(eachSitesOverlaps)
+            print(allCombosList)
+            print(possibleStates)
             aggWeightedMeanOcc = 0 # Accumulate the numerator in the: weighted average (Pocc) mean occupancy calculation  (note that unbound state is multiplied by 0 sites)
             aggPartitionFunction = 0 # Accumulate the denominator (note that the unbound state results in +1)
             
@@ -171,6 +175,7 @@ def general_cluster_statmech_model(regObj, lowAffinityOcc=None, conc=16, consens
             aggOcc = aggOcc + meanOcc # add the occupancy from the ovlp cluster to the occupancy for the overall regulatory element
                     
         # -------------- after we're done with the case (non-ovlp site or ovlp cluster), move on to the next site
+        print(aggOcc)
         i += 1
         
     return aggOcc
@@ -204,7 +209,7 @@ def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
         
         keep = True # start by assuming we will keep this state (i.e. all of the sites in the list can be occupied at once)
         
-        for x in range(len(eachSitesOverlaps)): # for each list x of overlapping sites
+        for x in range(len(eachSitesOverlaps)): # for each list x of overlapping sites (same as numSites)
             
             applicable=False # if the site is present in the j state, to which list x actually corresponds
             overlapping=False # assuming the site corresponding to list x is present, is one of the sites that overlaps with it present?
@@ -213,8 +218,8 @@ def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
                 
                 for n in range(len(eachSitesOverlaps[x])): # iterate through the sites in list x
                     
-                    if allCombosList[j][k] == x and applicable == False: # is the site present in state j, to which the list X (of its overlapping sites) actually corresponds?
-                        applicable = True
+                    if allCombosList[j][k]-allCombosList[1][0] == x and applicable == False: # is the site present in state j, to which the list X (of its overlapping sites) actually corresponds?
+                        applicable = True                                                    # - allCombosList[1][0] is because we need to calibrate to that index
                     
                     if allCombosList[j][k] == eachSitesOverlaps[x][n] and overlapping == False: # if a site in state j is found in list x
                         overlapping=True
@@ -226,7 +231,7 @@ def restrict_to_possible_states(allCombosList, eachSitesOverlaps):
             if applicable == True and overlapping == True: # if the state is invalid at any point, break out of loop
                 break
             
-        if keep == True: #if keep is still true, that state is possible, append it to possibleStates, otherwise move to the next state j+1
+        if keep == True: #if keep is still true, that state is possible, append it to possibleStates. Regardless, move to the next state j+1
             possibleStates.append(allCombosList[j])
             
     return possibleStates
