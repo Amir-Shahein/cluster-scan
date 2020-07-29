@@ -1105,8 +1105,7 @@ class PWMScan(object):
             nonOvlp_totalMeanOcc = nonOvlp_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
             ovlp_totalMeanOcc = ovlp_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
 
-        
-        plt.plot(nonOvlp_totalMeanOcc['affThresh'], nonOvlp_totalMeanOcc['Total_mean_occ'], label='Everything else', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(nonOvlp_totalMeanOcc['affThresh'], nonOvlp_totalMeanOcc['Total_mean_occ'], label='Everything else', color='blue', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
         plt.plot(ovlp_totalMeanOcc['affThresh'], ovlp_totalMeanOcc['Total_mean_occ'], label='Overlapping sites', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
         plt.legend(loc='best')
         plt.ylabel('Total Mean Occ.  ')
@@ -1114,6 +1113,17 @@ class PWMScan(object):
         fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/ovlpCluster_total_meanOcc_forDiffAffinityCutOffs.jpeg'
         plt.savefig(fname, dpi=1200, quality=95)
         plt.show()  
+        
+        ovlp_totalMeanOcc["percentOvlp"]=100*ovlp_totalMeanOcc['Total_mean_occ']/(ovlp_totalMeanOcc['Total_mean_occ']+nonOvlp_totalMeanOcc['Total_mean_occ'])
+        plt.plot(ovlp_totalMeanOcc['affThresh'], ovlp_totalMeanOcc['percentOvlp'], label='Percent of Total Occupancy', color='green', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.legend(loc='best')
+        plt.ylabel('Percentage Total Occupancy (%)')
+        plt.xlabel('Affinity Cut-off (Kd/Kd$_(cons)$)')
+        plt.ylim(0,50)
+        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/ovlpCluster_percentTotalMeanOcc_forDiffAffinityCutOffs.jpeg'
+        plt.savefig(fname, dpi=1200, quality=95)
+        plt.show()  
+        return nonOvlp_totalMeanOcc, ovlp_totalMeanOcc
             
 @dataclass    
 class RegEle: #Regulatory Elements
