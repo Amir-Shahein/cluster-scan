@@ -1056,7 +1056,7 @@ class PWMScan(object):
         
         return ss_totalMeanOcc, clus_totalMeanOcc
     
-    def ovlpClus_totalMeanOcc_affinityScan(self, regHitsDf, affThreshList, siteLen=9, plot=False):
+    def ovlpClus_totalMeanOcc_affinityScan(self, regHitsDf, affThreshList, siteLen=9):
         """
         This method shows occupancy to overlapping binding sites vs. all other sites, as we vary the affinity threshold.
         How it works: takes regHitsDf, runs it through misc-process-df for each value
@@ -1088,9 +1088,33 @@ class PWMScan(object):
         nonOvlp_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
         ovlp_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
         
+        for i in range(len(affThreshList)):
+            
+            resRegHitsDf = self.misc_process_df(regHitsDf, threshold=affThreshList[i], resetIndex=True)
+            
+            self.generate_reg_elements_clusters(resRegHitsDf, maxGap=-1, siteLength=siteLen)
+            
+            clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=16, consensusKd=16, concO=0.6)
         
+            clusSumMeanOcc = clusDF['meanOcc'].sum()
+            
+            ssDF = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, conc=16, consensusKd=16, concO=0.6)
+            
+            ssSumMeanOcc = ssDF['meanOcc'].sum()
+            
+            nonOvlp_totalMeanOcc = nonOvlp_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
+            ovlp_totalMeanOcc = ovlp_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
+
         
-    
+        plt.plot(nonOvlp_totalMeanOcc['affThresh'], nonOvlp_totalMeanOcc['Total_mean_occ'], label='Everything else', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(ovlp_totalMeanOcc['affThresh'], ovlp_totalMeanOcc['Total_mean_occ'], label='Overlapping sites', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.legend(loc='best')
+        plt.ylabel('Total Mean Occ.  ')
+        plt.xlabel('Affinity Cut-off (Kd/Kd$_(cons)$)')
+        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/ovlpCluster_total_meanOcc_forDiffAffinityCutOffs.jpeg'
+        plt.savefig(fname, dpi=1200, quality=95)
+        plt.show()  
+            
 @dataclass    
 class RegEle: #Regulatory Elements
     bindingSiteSeqs: list
