@@ -884,7 +884,7 @@ class PWMScan(object):
         Method plots the meanOcc column of the input dataframes histograms on the same plot.
 
         """
-        binz = np.linspace(0,6.2,num=100)
+        binz = np.linspace(0,4.5,num=100)
         #binz = np.linspace(0,(dfCluster['meanOcc'].max()+0.5),num=100)
         
         plt.hist(dfCluster['meanOcc'], label='Clusters', alpha=0.4, bins=binz)
@@ -909,7 +909,7 @@ class PWMScan(object):
             plt.savefig(fname, dpi=1200, quality=95)
         plt.show()
         
-    def parameter_scan_spacing_affinity(self, regHitsDf, spacingList, lowAffinityOccThreshList=None, siteLen=9, plot=False):
+    def parameter_scan_spacing_affinity(self, regHitsDf, spacingList, lowAffinityOccThreshList, siteLen=9, plot=False):
         """
         This method takes as input a dataframe of regulatory hits (binding sites identified
         in promoter sequences), and then turns them into clusters vs. non-clusters through
@@ -1055,6 +1055,41 @@ class PWMScan(object):
         plt.show()   
         
         return ss_totalMeanOcc, clus_totalMeanOcc
+    
+    def ovlpClus_totalMeanOcc_affinityScan(self, regHitsDf, affThreshList, siteLen=9, plot=False):
+        """
+        This method shows occupancy to overlapping binding sites vs. all other sites, as we vary the affinity threshold.
+        How it works: takes regHitsDf, runs it through misc-process-df for each value
+        in an affinityThreshList, and then calls generate_reg_elements_clusters 
+        (spacing threshold=-1), then it  generates a meanOcc column for both 
+        non_clus_reg_hits and unpClusterList, by calling ss_reglist_calc_meanOcc 
+        and clus_reglist_calc_meanOcc. Then it sums the column and store the totals 
+        in  a  meanOcc data frame beside  an affinityThreshold value. Then it  
+        plots this data frame. This is valuable because it shows sensitivity of OVLP 
+        clusters to affinity thresholds, to bypasss the argument that this is  just a product 
+        of the primary binding site structure. Other approaches like restricting to occupancy
+        contribution from  sites  below an affinity threshold in ovlpClusterss would not make sense  here. 
+
+        Parameters
+        ----------
+        regHitsDf : TYPE
+            DESCRIPTION.
+        affThreshList : TYPE
+            List of affinities to restric the regHitsDf to, before compiling  clusters.
+        plot : TYPE, optional
+            Plot if true.
+
+        Returns
+        -------
+        ovlpClus_TotalMeanOcc_AffScan.
+
+        """
+        
+        nonOvlp_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
+        ovlp_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
+        
+        
+        
     
 @dataclass    
 class RegEle: #Regulatory Elements
