@@ -1152,7 +1152,9 @@ class PWMScan(object):
 
         """
         
-        wmsPercentTotalMeanOcc = pd.DataFrame(columns=['Concentration', 'percentConsSat','totalMeanOcc','strongMeanOcc','percentStrong','mediumMeanOcc','percentMedium','weakMeanOcc','percentWeak'])
+        ss_wmsPercentTotalMeanOcc = pd.DataFrame(columns=['Concentration', 'percentConsSat','totalMeanOcc','strongMeanOcc','percentStrong','mediumMeanOcc','percentMedium','weakMeanOcc','percentWeak'])
+        clus_wmsPercentTotalMeanOcc = pd.DataFrame(columns=['Concentration', 'percentConsSat','totalMeanOcc','strongMeanOcc','percentStrong','mediumMeanOcc','percentMedium','weakMeanOcc','percentWeak'])
+
         percentSats = np.array([1,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,99])
         percentSats = percentSats/100
         concentrations=[] #Percent saturation values will be converted into concentration values
@@ -1169,13 +1171,59 @@ class PWMScan(object):
         
         for j in range(len(concentrations)):
             
-            ss_total = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            ssTotal = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
             
-            clus_total = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            clusTotal = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
             
-            ss_weak = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, lowAffLowerBound=mediumUpperBound, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            ssWeak = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, lowAffLowerBound=mediumUpperBound, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
             
-            clus_weak = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], lowAffLowerBound=mediumUpperBound, concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            clusWeak = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], lowAffLowerBound=mediumUpperBound, concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            
+            ssMediumAndWeak = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, lowAffLowerBound=strongUpperBound, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+
+            clusMediumAndWeak = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], lowAffLowerBound=strongUpperBound, concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            
+            ssStrong = ssTotal - ssMediumAndWeak
+            clusStrong = clusTotal - clusMediumAndWeak
+            
+            ssMedium = ssTotal - ssWeak - ssStrong
+            clusMedium = clusTotal - clusWeak - clusStrong
+            
+            ssWeakPercent = 100*(ssWeak/ssTotal)
+            ssMediumPercent = 100*(ssMedium/ssTotal)
+            ssStrongPercent = 100*(ssStrong/ssTotal)
+            
+            clusWeakPercent = 100*(clusWeak/clusTotal)
+            clusMediumPercent = 100*(clusMedium/clusTotal)
+            clusStrongPercent = 100*(clusStrong/clusTotal)
+            
+            ss_wmsPercentTotalMeanOcc = ss_wmsPercentTotalMeanOcc.append({'Concentration': concentrations[j], 'percentConsSat': percentSats[j],'totalMeanOcc': ssTotal,'strongMeanOcc': ssStrong,'percentStrong': ssStrongPercent,'mediumMeanOcc': ssMedium,'percentMedium': ssMediumPercent,'weakMeanOcc': ssWeak,'percentWeak': ssWeakPercent}, ignore_index=True)            
+            clus_wmsPercentTotalMeanOcc = clus_wmsPercentTotalMeanOcc.append({'Concentration': concentrations[j], 'percentConsSat': percentSats[j],'totalMeanOcc': clusTotal,'strongMeanOcc': clusStrong,'percentStrong': clusStrongPercent,'mediumMeanOcc': clusMedium,'percentMedium': clusMediumPercent,'weakMeanOcc': clusWeak,'percentWeak': clusWeakPercent}, ignore_index=True)            
+            
+        plt.plot(ss_wmsPercentTotalMeanOcc['percentConsSat'], ss_wmsPercentTotalMeanOcc['percentStrong'], label='Strong single sites', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(ss_wmsPercentTotalMeanOcc['percentConsSat'], ss_wmsPercentTotalMeanOcc['percentMedium'], label='Medium single sites', color='blue', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(ss_wmsPercentTotalMeanOcc['percentConsSat'], ss_wmsPercentTotalMeanOcc['percentWeak'], label='Weak single sites', color='gold', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.xticks(ticks=[1,10,20,30,40,50,60,70,80,90,99], labels=[1,10,20,30,40,50,60,70,80,90,99])
+        plt.legend(loc='best')
+        plt.ylabel('Percent of Single-site Occupancy in Site Category (%)')
+        plt.xlabel('Saturation of a Consensus Binding Site (%)')
+        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/percent_total_occ/singlesites_WMS_percentTotalOcc_consSat.jpeg'
+        plt.savefig(fname, dpi=1200, quality=95)
+        plt.show()  
+        
+        plt.plot(clus_wmsPercentTotalMeanOcc['percentConsSat'], clus_wmsPercentTotalMeanOcc['percentStrong'], label='Strong sites', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(clus_wmsPercentTotalMeanOcc['percentConsSat'], clus_wmsPercentTotalMeanOcc['percentMedium'], label='Medium sites', color='blue', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(clus_wmsPercentTotalMeanOcc['percentConsSat'], clus_wmsPercentTotalMeanOcc['percentWeak'], label='Weak sites', color='gold', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.xticks(ticks=[1,10,20,30,40,50,60,70,80,90,99], labels=[1,10,20,30,40,50,60,70,80,90,99])
+        plt.legend(loc='best')
+        plt.ylabel('Percent of Cluster Occupancy in Site Category (%)')
+        plt.xlabel('Saturation of a Consensus Binding Site (%)')
+        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/percent_total_occ/singlesites_WMS_percentTotalOcc_consSat.jpeg'
+        plt.savefig(fname, dpi=1200, quality=95)
+        plt.show()  
+        
+        return ss_wmsPercentTotalMeanOcc, clus_wmsPercentTotalMeanOcc
+            
     
 @dataclass    
 class RegEle: #Regulatory Elements
