@@ -11,6 +11,10 @@ import matplotlib.pyplot as plt
 from statMechModel import general_cluster_statmech_model
 from statMechModel import single_site_statmech_model
 from mpl_toolkits.mplot3d.axes3d import Axes3D
+import math
+from sympy.solvers import solve
+from sympy import Symbol
+
 
 class PWMScan(object):
     def __init__(self):
@@ -434,7 +438,7 @@ class PWMScan(object):
             GC_content = GC_count / float(len(seq))
             return GC_content
         
-    def misc_process_df(self, df, threshold=None, resetIndex=False):
+    def misc_process_df(self, df, threshold=None, weakThresh=None, resetIndex=False):
         """
         This method just groups some of the dataframe processing code that one might
         want to use during a scanning process.
@@ -451,9 +455,12 @@ class PWMScan(object):
         None.
 
         """
-        if threshold is not None:
+        if threshold:
             df = df[df.Score<threshold]   
-            
+        
+        if weakThresh:
+            df = df[df.Score>weakThresh]
+        
         if resetIndex:
             df = df.reset_index(drop=True)
         
@@ -816,7 +823,7 @@ class PWMScan(object):
         fig, ax = plt.subplots()
         self.flat_df_count[0].plot(ax=ax, kind='bar')
     
-    def ss_reglist_calc_meanOcc(self, df, highAffOccThresh=None, conc=16, consensusKd=16, concO=0.6):
+    def ss_reglist_calc_meanOcc(self, df, highAffUpperBound=None, lowAffLowerBound=None, conc=16, consensusKd=16, concO=0.6):
         """
         This method takes as input a dataframe of binding site hits, and modifies the dataframe in order to have a meanOccupancy column.
 
@@ -825,7 +832,7 @@ class PWMScan(object):
         df : dataframe
             the dataframe of hits and properties.
             
-        highAffOccThresh: float
+        highAffUpperBound: float
             if this variable is specified, it means that we only want to look at high affinity sites
 
         Returns
@@ -834,8 +841,11 @@ class PWMScan(object):
 
         """
         
-        if highAffOccThresh:
-            df = self.misc_process_df(df, threshold=highAffOccThresh, resetIndex=True)
+        if highAffUpperBound:
+            df = self.misc_process_df(df, threshold=highAffUpperBound, resetIndex=True)
+            
+        if lowAffLowerBound:
+            df = self.misc_process_df(df, weakThresh=lowAffLowerBound, resetIndex=True)
         
         df["meanOcc"]=""
         
@@ -847,7 +857,7 @@ class PWMScan(object):
                         
         return df
         
-    def cluster_reglist_calc_meanOcc(self, regObjList, lowAffinityOccThresh=None, conc=16, consensusKd=16, concO=0.6):
+    def cluster_reglist_calc_meanOcc(self, regObjList, lowAffLowerBound=None, conc=16, consensusKd=16, concO=0.6):
         """
         Method calculates the mean occupancy, and converts the input list of objects into a dataframe, with a mean occupancy column.
 
@@ -856,7 +866,7 @@ class PWMScan(object):
         regObjList : List of regulatory objects
             Object is from class RegEle.
             
-        lowAffinityOccThresh : float
+        lowAffLowerBound : float
             If specified, this means we only care about the mean occupancy coming from low-affinity sites,
             which have Kd values above the threshold ratio stored in this variable. In order to implement
             this, for independent binding sites, we skip the occupancy contribution if the site's Kd is 
@@ -874,7 +884,7 @@ class PWMScan(object):
         
         for p in tqdm(range(len(regObjList))):
             
-            meanOcc = general_cluster_statmech_model(regObjList[p], lowAffinityOccThresh, conc, consensusKd, concO)  #calculate the occupancy of the i'th object
+            meanOcc = general_cluster_statmech_model(regObjList[p], lowAffLowerBound, conc, consensusKd, concO)  #calculate the occupancy of the i'th object
             df = df.append(pd.DataFrame([vars(regObjList[p])]),ignore_index=True) #append the i'th object to df
             df.loc[p].meanOcc = meanOcc
         return df
@@ -955,11 +965,11 @@ class PWMScan(object):
 
             for j in tqdm(range(len(lowAffinityOccThreshList))):
                                 
-                clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, lowAffinityOccThresh=lowAffinityOccThreshList[j], conc=16, consensusKd=16, concO=0.6)
+                clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, lowAffLowerBound=lowAffinityOccThreshList[j], conc=16, consensusKd=16, concO=0.6)
                 
                 clusSumMeanOcc = clusDF['meanOcc'].sum()
                                 
-                ssDF = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, highAffOccThresh=lowAffinityOccThreshList[j], conc=16, consensusKd=16, concO=0.6)
+                ssDF = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, highAffUpperBound=lowAffinityOccThreshList[j], conc=16, consensusKd=16, concO=0.6)
                 
                 ssSumMeanOcc = ssDF['meanOcc'].sum()
                 
@@ -1085,14 +1095,14 @@ class PWMScan(object):
 
         """
         
-        nonOvlp_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
-        ovlp_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
+        nonClusAff_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
+        clusAff_totalMeanOcc = pd.DataFrame(columns=['affThresh', 'Total_mean_occ'])
         
         for i in range(len(affThreshList)):
             
             resRegHitsDf = self.misc_process_df(regHitsDf, threshold=affThreshList[i], resetIndex=True)
             
-            self.generate_reg_elements_clusters(resRegHitsDf, maxGap=-1, siteLength=siteLen)
+            self.generate_reg_elements_clusters(resRegHitsDf, maxGap=25, siteLength=siteLen)
             
             clusDF = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=16, consensusKd=16, concO=0.6)
         
@@ -1102,29 +1112,71 @@ class PWMScan(object):
             
             ssSumMeanOcc = ssDF['meanOcc'].sum()
             
-            nonOvlp_totalMeanOcc = nonOvlp_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
-            ovlp_totalMeanOcc = ovlp_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
+            nonClusAff_totalMeanOcc = nonClusAff_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': ssSumMeanOcc}, ignore_index=True)
+            clusAff_totalMeanOcc = clusAff_totalMeanOcc.append({'affThresh': affThreshList[i], 'Total_mean_occ': clusSumMeanOcc}, ignore_index=True)
 
-        plt.plot(nonOvlp_totalMeanOcc['affThresh'], nonOvlp_totalMeanOcc['Total_mean_occ'], label='Everything else', color='blue', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
-        plt.plot(ovlp_totalMeanOcc['affThresh'], ovlp_totalMeanOcc['Total_mean_occ'], label='Overlapping sites', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(nonClusAff_totalMeanOcc['affThresh'], nonClusAff_totalMeanOcc['Total_mean_occ'], label='Single sites', color='black', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        plt.plot(clusAff_totalMeanOcc['affThresh'], clusAff_totalMeanOcc['Total_mean_occ'], label='Clusters', color='red', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
         plt.legend(loc='best')
         plt.ylabel('Total Mean Occ.  ')
         plt.xlabel('Affinity Cut-off (Kd/Kd$_(cons)$)')
-        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/ovlpCluster_total_meanOcc_forDiffAffinityCutOffs.jpeg'
+        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/clusters_25maxgap_total_meanOcc_forDiffAffinityCutOffs.jpeg'
         plt.savefig(fname, dpi=1200, quality=95)
         plt.show()  
         
-        ovlp_totalMeanOcc["percentOvlp"]=100*ovlp_totalMeanOcc['Total_mean_occ']/(ovlp_totalMeanOcc['Total_mean_occ']+nonOvlp_totalMeanOcc['Total_mean_occ'])
-        plt.plot(ovlp_totalMeanOcc['affThresh'], ovlp_totalMeanOcc['percentOvlp'], label='Percent of Total Occupancy', color='green', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
-        plt.legend(loc='best')
-        plt.ylabel('Percentage Total Occupancy (%)')
-        plt.xlabel('Affinity Cut-off (Kd/Kd$_(cons)$)')
-        plt.ylim(0,50)
-        fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/ovlpCluster_percentTotalMeanOcc_forDiffAffinityCutOffs.jpeg'
-        plt.savefig(fname, dpi=1200, quality=95)
-        plt.show()  
-        return nonOvlp_totalMeanOcc, ovlp_totalMeanOcc
+        # ovlp_totalMeanOcc["percentOvlp"]=100*ovlp_totalMeanOcc['Total_mean_occ']/(ovlp_totalMeanOcc['Total_mean_occ']+nonOvlp_totalMeanOcc['Total_mean_occ'])
+        # plt.plot(ovlp_totalMeanOcc['affThresh'], ovlp_totalMeanOcc['percentOvlp'], label='Percent of Total Occupancy in Overlapping Sites', color='green', marker='o', linestyle='dashed',linewidth=2, markersize=5, alpha=0.7)
+        # plt.legend(loc='best')
+        # plt.ylabel('Percentage Total Occupancy (%)')
+        # plt.xlabel('Binding-site Affinity Cut-off (Kd/Kd$_(cons)$)')
+        # plt.ylim(0,50)
+        # fname='/Users/transcend/SynologyDrive/Python_Stuff/python_scripts/cluster_scan/plots/mean_occupancy_distributions/ovlpCluster_percentTotalMeanOcc_forDiffAffinityCutOffs.jpeg'
+        # plt.savefig(fname, dpi=1200, quality=95)
+        # plt.show()  
+        return nonClusAff_totalMeanOcc, clusAff_totalMeanOcc
+    
+    def percentMeanOcc_WMS_consensusSaturation(self, regHitsDf, maxGap, consensusKd=16, strongUpperBound=2, mediumUpperBound=10):
+        """
+        
+
+        Parameters
+        ----------
+        regHitsDf : TYPE
+            DESCRIPTION.
+        maxGap : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        wmsPercentTotalMeanOcc = pd.DataFrame(columns=['Concentration', 'percentConsSat','totalMeanOcc','strongMeanOcc','percentStrong','mediumMeanOcc','percentMedium','weakMeanOcc','percentWeak'])
+        percentSats = np.array([1,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,99])
+        percentSats = percentSats/100
+        concentrations=[] #Percent saturation values will be converted into concentration values
+        concO=0.6
+        delEcons=math.log(consensusKd/concO)
+        
+        for i in range(len(percentSats)): 
             
+            conc = Symbol('conc')
+            x = solve((conc/concO)*math.exp(-delEcons)/(1+(conc/concO)*math.exp(-delEcons)) - percentSats[i], conc)
+            concentrations.append(x)
+        
+        self.generate_reg_elements_clusters(regHitsDf, maxGap, siteLength=9)
+        
+        for j in range(len(concentrations)):
+            
+            ss_total = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            
+            clus_total = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            
+            ss_weak = self.ss_reglist_calc_meanOcc(self.non_clus_reg_hits, lowAffLowerBound=mediumUpperBound, conc=concentrations[j], concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+            
+            clus_weak = self.cluster_reglist_calc_meanOcc(self.unpClusterList, conc=concentrations[j], lowAffLowerBound=mediumUpperBound, concO=concO, consensusKd=consensusKd)['meanOcc'].sum()
+    
 @dataclass    
 class RegEle: #Regulatory Elements
     bindingSiteSeqs: list
